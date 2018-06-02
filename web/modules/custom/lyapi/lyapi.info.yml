@@ -1,0 +1,10 @@
+name: Ly API
+description: 'Provides basic API for LY audio'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - wechat_api
+  - features_ui
+  - simplehtmldom

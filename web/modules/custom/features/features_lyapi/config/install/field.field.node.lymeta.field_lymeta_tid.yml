@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_lymeta_tid
+    - node.type.lymeta
+    - taxonomy.vocabulary.lylist
+id: node.lymeta.field_lymeta_tid
+field_name: field_lymeta_tid
+entity_type: node
+bundle: lymeta
+label: field_lymeta_tid
+description: 对应的分类termID：13＝空中辅导
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      lylist: lylist
+    sort:
+      field: _none
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

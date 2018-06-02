@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.taxonomy_term.wechat_comments.field_wechat_comments
+    - taxonomy.vocabulary.wechat_comments
+  module:
+    - comment
+    - text
+id: taxonomy_term.wechat_comments.default
+targetEntityType: taxonomy_term
+bundle: wechat_comments
+mode: default
+content:
+  description:
+    label: hidden
+    type: text_default
+    weight: 0
+    settings: {  }
+    third_party_settings: {  }
+  field_wechat_comments:
+    weight: 2
+    label: above
+    settings:
+      view_mode: default
+      pager_id: 0
+    third_party_settings: {  }
+    type: comment_default
+hidden: {  }

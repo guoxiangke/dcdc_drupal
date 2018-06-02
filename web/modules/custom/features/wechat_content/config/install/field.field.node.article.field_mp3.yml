@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mp3
+    - node.type.article
+  module:
+    - file
+id: node.article.field_mp3
+field_name: field_mp3
+entity_type: node
+bundle: article
+label: 音频mp3
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  file_directory: 'audios/[date:custom:Y]-[date:custom:m]'
+  file_extensions: mp3
+  max_filesize: ''
+  description_field: false
+  handler: 'default:file'
+  handler_settings: {  }
+field_type: file

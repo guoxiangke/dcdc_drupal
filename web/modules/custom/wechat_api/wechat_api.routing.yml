@@ -1,0 +1,30 @@
+# TODO: add list of accounts!!!
+# TODO:关注时默认回复文本,默认单图文?
+# menu has role access
+wechat_api.admin:
+  path: '/admin/config/wechat/{user}'
+  defaults:
+    _form: 'Drupal\wechat_api\Form\WechatConfigForm'
+    _title: 'Account settings'
+  requirements:
+      _permission: 'administer wechat accounts'
+  options:
+    user: \d+
+
+wechat_api.wechatconfig:
+  path: '/user/{user}/wechat'
+  defaults:
+    _form: 'Drupal\wechat_api\Form\WechatConfigForm'
+    _title: 'Wechat Config'
+  requirements:
+    _role: 'wechat_account'
+  options:
+    user: \d+
+
+wechat_api.mpresponse:
+  path: '/wechat/{uid}'
+  defaults:
+    _controller: '\Drupal\wechat_api\Controller\WechatController::mpResponse'
+    _title: 'Hello World'
+  requirements:
+    _permission: 'access content'

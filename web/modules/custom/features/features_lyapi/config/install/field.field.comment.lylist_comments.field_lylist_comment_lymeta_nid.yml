@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - comment.type.lylist_comments
+    - field.storage.comment.field_lylist_comment_lymeta_nid
+    - node.type.lymeta
+id: comment.lylist_comments.field_lylist_comment_lymeta_nid
+field_name: field_lylist_comment_lymeta_nid
+entity_type: comment
+bundle: lylist_comments
+label: lylist_comment_lymeta_nid
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      lymeta: lymeta
+    sort:
+      field: _none
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

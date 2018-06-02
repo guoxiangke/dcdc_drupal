@@ -1,0 +1,891 @@
+<?php
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
+/**
+ * Implements hook_install().
+ */
+
+function resource_lts_install() {
+	$lylistvname = 'lylts';
+	$field_pre = 'field_term_'.$lylistvname.'_';
+	$ly_vocabulary = Vocabulary::load($lylistvname);
+	if(!$ly_vocabulary){
+		//		[entityTypeId] => taxonomy_vocabulary
+		//		[vid] => lylist
+		//		[name] => 良友节目
+		//		[description] => API
+		//		[hierarchy] => 0
+		//		[weight] => 0
+		//		[originalId] => lylist
+		$taxonomy_vocabulary = Vocabulary::create();
+		$taxonomy_vocabulary->set('name','良院课程');
+		$taxonomy_vocabulary->set('vid',$lylistvname);
+		$taxonomy_vocabulary->set('description','lylts Data');
+		$taxonomy_vocabulary ->save();
+		//TODO:: why need load twice? to use $ly_vocabulary->id() = $lylistvname
+//		$ly_vocabulary = Vocabulary::load($lylistvname);
+	}
+	// Drupal 8 https://www.drupal.org/node/2012896
+	// ProfileTestBase.php line 70
+	$fields = ['code'=>'获取代码(without #)101-999','title'=>'课程名称','prefex'=>'命名前缀','count'=>'课程数量','level'=>'基础课程\本科课程\进深课程\专辑课程','category'=>'标签分类','author'=>'授课老师','pdf'=>'有无课程讲义0/1'];
+	$entity_type = 'taxonomy_term';
+	$bundle = $lylistvname;
+	foreach($fields as $field_name => $label_name)
+	{
+		$type = 'string';
+		if($field_name == 'count' || $field_name == 'code' ) $type = 'integer';
+//		if($field_name == 'pdf') $type = 'boolean';
+		$field_name = $field_pre . $field_name;
+		$field_storage = FieldStorageConfig::create(array(
+			'field_name' => $field_name,
+			'entity_type' => $entity_type,
+			'type' => $type, //@see all types /admin/structure/comment/manage/comment/fields/add-field
+		));
+		$field_storage->save();
+		$field = FieldConfig::create(array(
+			'field_name' => $field_name,
+			'entity_type' => $entity_type,
+			'bundle' => $bundle,
+			'label' => $label_name,
+			'required' => TRUE,
+		));
+		$field->save();
+		// Create a form display for the default form mode.
+		// @see Drupal\field\Tests\Boolean BooleanFieldTest.php
+		entity_get_form_display($entity_type, $bundle, 'default')
+			->setComponent($field_name)
+			->save();
+	}//TODO:: add comments to this tag! core/modules/comment/src/Tests/CommentTestTrait.php
+
+
+	$parents_array = ['基础课程','本科课程','进深课程','专辑课程'];
+	$parents_terms = [];
+	foreach($parents_array as $weight=> $p_value){
+		$term = Term::create([
+			'name' => $p_value,
+			'vid' => $lylistvname,
+			'weight' => $weight,
+		]);
+		$term->save();
+		$parents_terms[] = $term;
+	}
+	$sbl_lists = get_mp_old_lts();
+	foreach($sbl_lists as $key=> $list){
+		$parent = array (0);
+		/* @var $term \Drupal\taxonomy\Entity\Term */
+		foreach($parents_terms as $term) {
+			if($term->getName() == $list['level']){
+				$parent = array($term->id());
+			}
+		}
+		$pdf=1;
+		if(isset($list['pdf']) && $list['pdf'] == 0){
+			$pdf=0;
+		}
+		$term = Term::create([
+			'parent' => $parent,
+			'name' => $list['title'],
+			'vid' => $lylistvname,
+			$field_pre.'code'=>$key,//101-999
+			$field_pre.'pdf'=> $pdf,//'pdf'=>'讲义',
+			'weight' => $key,
+		]);
+		$fields = ['title'=>'课程名称','prefex'=>'命名前缀','count'=>'课程数量','level'=>'基础课程\本科课程\进深课程\专辑课程','category'=>'标签分类','author'=>'授课老师'];
+		foreach($fields as $field_name=>$field){
+			if(isset($list[$field_name]))
+				$term->set($field_pre.$field_name,$list[$field_name]);
+		}
+		$term->save();
+		\Drupal::service('path.alias_storage')->save("/taxonomy/term/" . $term->id(), "/tags/lylts/".$key, "und");
+	}
+}
+
+//TODO -> import to DB term!
+function  get_mp_old_lts(){
+	return array(
+		'101'=>array(
+			'title'=>'婚姻与家庭',
+			'prefex'=>'vmf1',
+			'count'=>24,
+			'level'=>'基础课程',
+			'author'=>'罗加怡,李兰',
+		),
+		'102'=>array(
+			'title'=>'新约浅说',
+			'prefex'=>'vkn0',
+			'count'=>24,
+			'level'=>'基础课程',
+			'author'=>'张得仁',
+		),
+		'103'=>array(
+			'title'=>'旧约浅说',
+			'prefex'=>'vko0',
+			'count'=>24,
+			'level'=>'基础课程',
+			'author'=>'李重恩',
+		),
+		'104'=>array(
+			'title'=>'基要真理',
+			'prefex'=>'vfb0',
+			'count'=>24,
+			'level'=>'基础课程',
+			'author'=>'姚谦',
+		),
+		'105'=>array(
+			'title'=>'基本研经法',
+			'prefex'=>'vbm0',
+			'count'=>24,
+			'level'=>'基础课程',
+			'author'=>'林诚',
+		),
+		'106'=>array(
+			'title'=>'耶稣生平',
+			'prefex'=>'vls0',
+			'count'=>24,
+			'level'=>'基础课程',
+			'author'=>'张得仁',
+		),
+		'107'=>array(
+			'title'=>'信仰与生活',
+			'prefex'=>'vfl0',
+			'count'=>24,
+			'level'=>'基础课程',
+			'author'=>'李悦心',
+		),
+		'108'=>array(
+			'title'=>'事奉装备',
+			'prefex'=>'vpr0',
+			'count'=>24,
+			'level'=>'基础课程',
+			'author'=>'李兰',
+		),
+		//109--199 预留给专辑
+		//默认都有讲义。 如果无讲义，'pdf' =>0,
+		//201-204 本科先修科
+		'201'=>array(
+			'title'=>'新约综览',
+			'prefex'=>'vnt0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)本科先修科',
+			'author'=>'李悦心',
+		),
+		'202'=>array(
+			'title'=>'旧约综览',
+			'prefex'=>'vot0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)本科先修科',
+			'author'=>'王羽燕',
+		),
+		'203'=>array(
+			'title'=>'基督教教义',
+			'prefex'=>'vcd0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'author'=>'周广亮',
+			'category'=>'神学(8科)本科先修科',
+		),
+		'204'=>array(
+			'title'=>'解经与研经',
+			'prefex'=>'vhe0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)本科先修科',
+			'author'=>'林诚',
+		),
+		'205'=>array(
+			'title'=>'33周年院庆培灵会',
+			'prefex'=>'lts330',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'良院老师',
+			'pdf' =>0,
+		),
+		'206'=>array(
+			'title'=>'毕业周特辑2015',
+			'prefex'=>'grc150',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'良院老师',
+			'pdf' =>0,
+		),
+		'207'=>array(
+			'title'=>'开学周特辑2015',
+			'prefex'=>'opc150',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'良院老师',
+			'pdf' =>0,
+		),
+		'208'=>array(
+			'title'=>'圣诞节特辑2015',
+			'prefex'=>'xma150',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'文惠、万峰',
+		),
+		'209'=>array(
+			'title'=>'春节培灵会2016',
+			'prefex'=>'sfs160',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'卢文、周广亮、袁择善',
+			'pdf' =>0,
+		),
+		'210'=>array(
+			'title'=>'烽火宣教情',
+			'prefex'=>'amp0',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'魏外扬',
+		),
+		'211'=>array(
+			'title'=>'道在职场',
+			'prefex'=>'vlw0',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'崔老师、文惠、杨天成',
+		),
+		'212'=>array(
+			'title'=>'城市宣教',
+			'prefex'=>'vcn0',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'陈慕天、文惠',
+		),
+		'213'=>array(
+			'title'=>'复活节特辑2016',
+			'prefex'=>'esp160',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'吴加恩',
+		),
+		'214'=>array(
+			'title'=>'慎思明辨',
+			'prefex'=>'vfd0',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'程蒙恩',
+		),
+		'215'=>array(
+			'title'=>'宣教周特辑2016',
+			'prefex'=>'miw160',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'文惠、杨天成',
+			'pdf' =>0,
+		),
+		'216'=>array(
+			'title'=>'长者事工',
+			'prefex'=>'vem0',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'赵燕君、文惠',
+			'pdf' =>0,
+		),
+		'217'=>array(
+			'title'=>'毕业周特辑2016',
+			'prefex'=>'grc160',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'良院老师',
+			'pdf' =>0,
+		),
+		'218'=>array(
+			'title'=>'开学周特辑2016',
+			'prefex'=>'opc160',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'良院老师',
+			'pdf' =>0,
+		),
+		'219'=>array(
+			'title'=>'圣诞节特辑2016',
+			'prefex'=>'xma160',
+			'count'=>6,
+			'level'=>'专辑课程',
+			'category'=>'专题特辑',
+			'author'=>'庄泽丰牧师',
+			'pdf' =>0,
+		),
+		//205--299 预留给专辑
+		//默认都有讲义。 如果无讲义，'pdf' =>0,
+		//301-314(317-3)本科课程 圣经
+
+		'301'=>array(
+			'title'=>'摩西五经',
+			'prefex'=>'vph0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'梁凯玲',
+		),
+		'302'=>array(
+			'title'=>'旧约历史书I',
+			'prefex'=>'voh0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'李重恩',
+		),
+		'303'=>array(
+			'title'=>'旧约历史书II',
+			'prefex'=>'voi0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'李重恩',
+		),
+		'304'=>array(
+			'title'=>'诗歌智慧书I',
+			'prefex'=>'vpb0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'胡卫理',
+		),
+		'305'=>array(
+			'title'=>'诗歌智慧书II',
+			'prefex'=>'vpk0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'胡卫理',
+		),
+		'306'=>array(
+			'title'=>'先知书I',
+			'prefex'=>'vop0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'林诚',
+		),
+		'307'=>array(
+			'title'=>'先知书II',
+			'prefex'=>'vor0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'林诚',
+		),
+		'308'=>array(
+			'title'=>'约翰福音',
+			'prefex'=>'vjo0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'刘锐光',
+		),
+		'309'=>array(
+			'title'=>'使徒行传',
+			'prefex'=>'vas0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'袁择善',
+		),
+		'310'=>array(
+			'title'=>'保罗书信I',
+			'prefex'=>'vpa0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'蔡筱枫',
+		),
+		'311'=>array(
+			'title'=>'保罗书信II',
+			'prefex'=>'vpu0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'蔡筱枫',
+		),
+		'312'=>array(
+			'title'=>'普通书信',
+			'prefex'=>'vge0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'张得仁',
+		),
+		'313'=>array(
+			'title'=>'罗马书',
+			'prefex'=>'vrs0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'周广亮',
+		),
+		'314'=>array(
+			'title'=>'启示录',
+			'prefex'=>'vrt0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'圣经(17科)',
+			'author'=>'李悦心',
+		),
+		//401-407(8-1)本科课程 神学(8科)
+		'401'=>array(
+			'title'=>'教会历史',
+			'prefex'=>'vch0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'神学(8科)',
+			'author'=>'李重恩',
+		),
+		'402'=>array(
+			'title'=>'讲道学',
+			'prefex'=>'vho1',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'神学(8科)',
+			'author'=>'周广亮,周大吉',
+		),
+		'403'=>array(
+			'title'=>'基督工人操守',
+			'prefex'=>'vcw0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'神学(8科)',
+			'author'=>'周广亮',
+		),
+		'404'=>array(
+			'title'=>'异端与极端',
+			'prefex'=>'vhx0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'神学(8科)',
+			'author'=>'郑子民',
+		),
+		'405'=>array(
+			'title'=>'教会行政',
+			'prefex'=>'vca0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'神学(8科)',
+			'author'=>'姚谦,文惠',
+		),
+		'406'=>array(
+			'title'=>'圣灵论',
+			'prefex'=>'vpn1',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'神学(8科)',
+			'author'=>'周广亮',
+		),
+		'407'=>array(
+			'title'=>'基督教伦理学',
+			'prefex'=>'vce0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'神学(8科)',
+			'author'=>'张得仁',
+		),
+		//501-503本科课程 差传(3科)
+		'501'=>array(
+			'title'=>'差传导论',
+			'prefex'=>'vmi0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'差传(3科)',
+			'author'=>'姚谦',
+		),
+		'502'=>array(
+			'title'=>'教会增长',
+			'prefex'=>'vcg0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'差传(3科)',
+			'author'=>'卢文,郑子民',
+		),
+		'503'=>array(
+			'title'=>'本土差传',
+			'prefex'=>'vom0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'差传(3科)',
+			'author'=>'卢文,周广亮',
+		),
+		//601-617 选修科
+		'601'=>array(
+			'title'=>'圣经背景',
+			'prefex'=>'vbi0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'李兰',
+		),
+		'602'=>array(
+			'title'=>'路加福音',
+			'prefex'=>'vlu1',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'林诚',
+		),
+		'603'=>array(
+			'title'=>'基督教与科学',
+			'prefex'=>'vcs0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'黄雅格',
+		),
+		'604'=>array(
+			'title'=>'基督教教育(制作中)',
+			'prefex'=>'ved1',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'文惠,殷言',
+		),
+		'605'=>array(
+			'title'=>'主日学教学法',
+			'prefex'=>'vst0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'文惠',
+		),
+		'606'=>array(
+			'title'=>'教导与牧养',
+			'prefex'=>'vtp0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'周广亮',
+		),
+		'607'=>array(
+			'title'=>'基督化家庭',
+			'prefex'=>'vcf1',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'周广亮,周素琴',
+		),
+		'608'=>array(
+			'title'=>'婚姻辅导',
+			'prefex'=>'vmc0',
+			'count'=>30,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'林真儿',
+		),
+		'609'=>array(
+			'title'=>'灵修默想与应用',
+			'prefex'=>'vdm0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'林真儿',
+		),
+		'610'=>array(
+			'title'=>'苦难与罪恶',
+			'prefex'=>'vss0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'郑子民',
+		),
+		'611'=>array(
+			'title'=>'青少年事工',
+			'prefex'=>'vym0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'林真儿',
+		),
+		'612'=>array(
+			'title'=>'讲道实习',
+			'prefex'=>'vhp1',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'文惠',
+		),
+		'613'=>array(
+			'title'=>'神迹奇事',
+			'prefex'=>'vsw0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'袁择善',
+		),
+		'614'=>array(
+			'title'=>'教会复兴运动',
+			'prefex'=>'vcm0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'周广亮',
+		),
+		'615'=>array(
+			'title'=>'圣经教师训练',
+			'prefex'=>'vtb0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'林真儿',
+		),
+		'616'=>array(
+			'title'=>'单身事工',
+			'prefex'=>'vsy0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'文惠',
+		),
+		'617'=>array(
+			'title'=>'中国教会史',
+			'prefex'=>'vcc0',
+			'count'=>24,
+			'level'=>'本科课程',
+			'category'=>'选修科',
+			'author'=>'孙睿之',
+		),
+		//701-706 进深课程 神学
+		'701'=>array(
+			'title'=>'基督论',
+			'prefex'=>'vcy1',//?0?1
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'神学',
+			'author'=>'林诚',
+		),
+		'702'=>array(
+			'title'=>'末世论',
+			'prefex'=>'vet0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'神学',
+			'author'=>'李悦心',
+		),
+		'703'=>array(
+			'title'=>'教会论',
+			'prefex'=>'vey0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'神学',
+			'author'=>'吕路加',
+		),
+		'704'=>array(
+			'title'=>'圣经论',//没有！
+			'prefex'=>'vdb0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'神学',
+			'author'=>'林诚',
+		),
+		'705'=>array(
+			'title'=>'神论',
+			'prefex'=>'vth0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'神学',
+			'author'=>'吕路加',
+		),
+		'706'=>array(
+			'title'=>'救恩论',
+			'prefex'=>'vsn0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'神学',
+			'author'=>'林诚',
+		),
+		'707'=>array(
+			'title'=>'启示论',
+			'prefex'=>'vdr0',
+			'count'=>18,
+			'level'=>'进深课程',
+			'category'=>'神学',
+			'author'=>'吕路加',
+		),
+		//801-813 圣经(13科)
+		'801'=>array(
+			'title'=>'圣经神学',
+			'prefex'=>'vbt0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'郑子民',
+		),
+		'802'=>array(
+			'title'=>'旧约神学',
+			'prefex'=>'vog0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'古元明',
+		),
+		'803'=>array(
+			'title'=>'新约神学',
+			'prefex'=>'vng1',//?0?1
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'吴加恩',
+		),
+		'804'=>array(
+			'title'=>'创世记',
+			'prefex'=>'vgs1',//?0?1
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'赵伟文',
+		),
+		'805'=>array(
+			'title'=>'以赛亚书',
+			'prefex'=>'vis0',
+			'count'=>30,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'罗文辉',
+		),
+		'806'=>array(
+			'title'=>'但以理书',
+			'prefex'=>'vda0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'李悦心',
+		),
+		'807'=>array(
+			'title'=>'哥林多前书',
+			'prefex'=>'vic0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'张得仁',
+		),
+		'808'=>array(
+			'title'=>'哥林多后书',
+			'prefex'=>'vio0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'张得仁',
+		),
+		'809'=>array(
+			'title'=>'加拉太书',
+			'prefex'=>'vga0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经(13科)',
+			'author'=>'李悦心,罗文辉',
+		),
+		'810'=>array(
+			'title'=>'以弗所书',
+			'prefex'=>'vee0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'林真儿',
+		),
+		'811'=>array(
+			'title'=>'教牧书信',
+			'prefex'=>'vps1',//?0?1
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'姚谦',
+		),
+		'812'=>array(
+			'title'=>'希伯来书',
+			'prefex'=>'vhb1',//?0?1
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'张风',
+		),
+		'813'=>array(
+			'title'=>'圣经文学导论',
+			'prefex'=>'vbl0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'圣经',
+			'author'=>'阮一心',
+		),
+		//901-908 进深课程 实用神学
+		'901'=>array(
+			'title'=>'释经与讲道',
+			'prefex'=>'veh1',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'实用神学',
+			'author'=>'张得仁',
+		),
+		'902'=>array(
+			'title'=>'领袖训练I',
+			'prefex'=>'vla0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'实用神学',
+			'author'=>'李星沙',
+		),
+		'903'=>array(
+			'title'=>'领袖训练II',
+			'prefex'=>'vlb0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'实用神学',
+			'author'=>'李星沙',
+		),
+		'904'=>array(
+			'title'=>'教牧学',
+			'prefex'=>'vpt0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'实用神学',
+			'author'=>'姚谦',
+		),
+		'905'=>array(
+			'title'=>'教牧辅导',
+			'prefex'=>'vpc0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'实用神学',
+			'author'=>'林诚,徐婷',
+		),
+		'906'=>array(
+			'title'=>'崇拜学',
+			'prefex'=>'vso1',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'实用神学',
+			'author'=>'张得仁',
+		),
+		'907'=>array(
+			'title'=>'差传神学',
+			'prefex'=>'vmg0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'实用神学',
+			'author'=>'姚谦',
+		),
+		'908'=>array(
+			'title'=>'进深讲道学',
+			'prefex'=>'vhh0',
+			'count'=>24,
+			'level'=>'进深课程',
+			'category'=>'实用神学',
+			'author'=>'罗文辉',
+		),
+	);
+}

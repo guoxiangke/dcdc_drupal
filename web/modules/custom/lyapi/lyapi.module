@@ -1,0 +1,654 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: dale.guo
+ * Date: 11/25/16
+ * Time: 4:10 PM
+ */
+use Drupal\comment\CommentInterface;
+use Drupal\comment\Entity\Comment;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Entity\Entity;
+use Drupal\Core\Url;
+use Drupal\node\Entity\Node;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\wechat_api\Plugin\Wechat\Wechat;
+
+/**
+ * hook_rescources_info
+ */
+function lyapi_rescources_info()
+{
+    $rescources[] = array(
+        'name' => '600',
+        'desc' => '良友电台【600】',
+    );
+    return $rescources;
+}
+
+/**
+ * hook_wxresources_alter
+ * mp_service_keyword_response
+ */
+function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
+{
+    $app_copy_name = '公众号:永不止息';
+    $zy_test_appname = '良友知音';
+    $app_name = NULL;
+    $is_certified = 0;
+    if ($weObj) {
+        $wechat_config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $weObj->uid);
+        $wechat_resources = $wechat_config['wechat_resources'];
+        $is_certified = $wechat_config['is_certified'] ?: 0;
+		$app_name = $wechat_config['appname'];
+        $app_copy_name = '公众号:'. $app_name;
+        //IF enable ly_resouce 600
+        if (!in_array('600', $wechat_resources)) return [];
+    }
+    $is_lywx = $app_name == $zy_test_appname?:FALSE;
+    if ($keyword == 600 && !$is_lywx) {
+        $resources = array(
+            'type'    => 'text',
+            'ga_data' => array(
+                'category' => 'lyapi_menu',
+                'action'   => '600',
+            ),
+            'obj'     => array(
+                'text' => ly_stream_menu(),
+            )
+        );
+        return $resources;
+    }
+//	$keyword = 600->699 100-1100 ee gsa
+// 641-645 =>ltsfp  ltsdp1 ltsdp2 ltshdp1 ltshdp2
+//	get_keywords_array_from_lylist_terms
+    $cached_resources_lylist = 'wxresources_lylist_terms';
+    if ($cache = \Drupal::cache()->get($cached_resources_lylist)) {
+        $lylist_terms = $cache->data;
+//		\Drupal::logger('get cache_lylist_term')->notice($keyword);
+    } else {
+        $lylistvname = 'lylist';
+        $container = \Drupal::getContainer();
+        //https://api.drupal.org/api/drupal/core!modules!taxonomy!src!TermStorage.php/function/TermStorage%3A%3AloadTree/8.2.x
+        $terms = $container->get('entity.manager')->getStorage('taxonomy_term')->loadTree($lylistvname, 0, NULL, TRUE);
+        if (!empty($terms)) {
+            foreach ($terms as $term) {
+                /* @var $term Term */
+                if ($index = $term->get('field_term_lylist_index')->value) {
+                    //status 1关闭评论 2开启评论
+                    if($term->get('field_lylist_comment')->status==1) continue;
+                    $lylist_index[$index] = $index;//601-653
+                    $lylist_lywx[$index] = $term->get('field_term_lylist_lywx')->value;//100-1100
+                    $lylist_code[$index] = $term->get('field_term_lylist_code')->value;//ee
+                    $lylist_day[$index] = $term->get('field_term_lylist_day')->value;//1-7 7 16
+                    $lylist_name[$index] = $term->getName();// dpm($term->name); if $load_entities = FALSE
+                    $lylist_tid[$index] = $term->id();
+                }
+            }
+            $lylist_terms['index'] = $lylist_index;
+            $lylist_terms['lywx'] = $lylist_lywx;
+            $lylist_terms['code'] = $lylist_code;
+            $lylist_terms['day'] = $lylist_day;
+            $lylist_terms['name'] = $lylist_name;
+            $lylist_terms['tid'] = $lylist_tid;
+        };
+//		\Drupal::logger('get no cache_lylist_term')->notice($keyword);
+        \Drupal::cache()->set($cached_resources_lylist, $lylist_terms, -1);
+    }
+
+    $lylist_index = $lylist_terms['index'];
+    $lylist_lywx = $lylist_terms['lywx'];
+    $lylist_code = $lylist_terms['code'];
+//	$lylist_day     = $lylist_terms['day'];
+    $lylist_name = $lylist_terms['name'];
+    $lylist_tid = $lylist_terms['tid'];
+
+
+    $process_index = FALSE;
+    $offset = 0;
+    $time = time();
+    if (is_numeric($keyword)) $tmp_keyword = substr($keyword, 0, 3);//60113
+    if (isset($tmp_keyword) && in_array($tmp_keyword, $lylist_index)&& !$is_lywx ) {//601[1-7-14]
+        //周二 周四 播放上周的直播节目。
+        if($tmp_keyword=="603" && in_array(date('w'), [2,4]) 
+            && !(date('Ym')=='201706' && date('j')<15 ) ){
+            $keyword = '6037';
+        }
+        $offset = substr($keyword, 3) ?: 0;
+        $tmp_len = strlen($offset);
+        if ($tmp_len == 4) {//604[1201]
+            $offset = floor(($time - strtotime(date('Y') . $offset)) / 86400);
+        } elseif ($tmp_len == 6) {//604[161220]
+            $offset = floor(($time - strtotime('20' . $offset)) / 86400);
+        } elseif ($tmp_len == 8) {//604[20161220]
+            $offset = floor(($time - strtotime($offset)) / 86400);
+        }
+        $process_index = $tmp_keyword;
+    }
+    $ly_tmp_keyword_code = FALSE;
+    if ($weObj && $is_lywx && (in_array($keyword, $lylist_lywx) || $keyword =='2011' )) {
+        if($keyword == '2011') {
+            $keyword = '201';
+            $offset = 1;
+        }
+        $ly_tmp_keyword_code = $keyword;
+        $process_index = array_search($keyword, $lylist_lywx);
+    }
+    if (in_array($keyword, $lylist_code)) {//ee TODO:gv160101
+        $process_index = array_search($keyword, $lylist_code);
+    }
+    if (in_array($keyword, $lylist_name)) {
+        $process_index = array_search($keyword, $lylist_name);
+        if($is_lywx) $ly_tmp_keyword_code = $lylist_lywx[$process_index];
+    }
+    $resources = NULL;
+    if ($process_index) {//601
+        if (!$is_lywx && $process_index >= 641 && $process_index <= 645) {//641-645
+            $code = $lylist_code[$process_index];//ee      http://txly2.net/ltshdp2
+            if(in_array($code, ['tu','bk','sr'])){
+                return;
+            }
+            $url = 'http://txly2.net/' . $code;
+            $html = file_get_html($url,false,null,0);
+            if (!$html) {
+                \Drupal::logger(__FUNCTION__)->notice('error get txly2/' . $code);
+                return;
+            }
+            $title = $html->find('.ss-title a', 1)->plaintext;
+            $custommessage = $html->find('.ss-title p', 0)->plaintext;
+            $link = $html->find('.ss-dl a', 0)->href;
+            $link = preg_replace('/\?.+/', '', $link);
+            $hgmusicurl = 'http://txly2.net' . $link;
+            $title = '【' . $process_index . '】' . $title . ' ' . $lylist_name[$process_index];
+            $date = date('ymd');
+            $desc = "点击▶️收听 " . $app_copy_name . ' ' . ($offset ? $date : ' 每日更新');
+            $resources = [
+                'keyword'       => $keyword,
+                'type'          => 'music',
+                'expire'        => REQUEST_TIME + 43200,//-1 never expires.
+                'obj'           => [
+                    'title'      => $title,
+                    'desc'       => $desc,
+                    'musicurl'   => $hgmusicurl,
+                    'hgmusicurl' => $hgmusicurl,
+                ],
+                'ga_data'       => array(
+                    'category' => 'lyapi_audio',
+                    'action'   => $lylist_name[$process_index],
+                ),
+                'custommessage' => $title . "\n" . $custommessage,
+            ];
+            return $resources;
+        }//end lts33 641-645
+        $https = 'http://';
+        $cdnlink = $https . 'lywxaudio.yongbuzhixi.com';
+        $code = $lylist_code[$process_index];//ee
+
+        $has_program = FALSE;
+        $tmp_offset = 0;
+        do {
+            $tmp_time = $time - $offset * 86400;
+            $date = date('ymd', $tmp_time);//161129
+            $tmp_path = '/' . date('Y', $tmp_time) . '/' . $code . '/' . $code;
+            $path = $tmp_path . $date . '.mp3';// /2016/rt/rt161127.mp3
+            $upt = upyun_get_token($path);
+            $uri = $cdnlink . $path;
+            $musicurl = $uri . $upt;
+            $temp = get_headers($musicurl, 1);
+            if ($temp[0] == 'HTTP/1.1 200 OK') {//远程有!!!
+                $has_program = TRUE;
+                $entity_id = lyapi_get_meta_entity_id($lylist_tid[$process_index], date('Ymd', $time - $offset * 86400));
+                if($entity_id){
+                    $entity = \Drupal::entityTypeManager()->getStorage('lymeta')->load($entity_id);
+                    if($entity) $body = $entity->get('title')->value;
+                }
+                break;
+            } else {
+                $offset++;
+                $tmp_offset++;
+            }
+        } while (!$has_program && $tmp_offset < 7);//上下范围7天
+
+        if (!$has_program) {
+            \Drupal::logger('Error')->notice("$process_index上下范围7天内无节目:$code");
+            return array(
+                'type'    => 'text',
+                'ga_data' => array(
+                    'category' => 'lyapi_error',
+                    'action'   => '上下范围7天内无节目',
+                ),
+                'obj'     => array(
+                    'text' => '上下范围7天内无节目!',
+                )
+            );
+        }
+
+
+//        $hgmusicurl = 'http://txly2.net/ly/audio' . $path;
+        $tmp_keyword_code = $ly_tmp_keyword_code?$ly_tmp_keyword_code:$process_index;
+        $title = '【' . $tmp_keyword_code . '】' . $lylist_name[$process_index];
+        $desc = "点击▶️收听 " . $app_copy_name . ($offset ? $date : ' 每日更新');
+
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'music',
+            'expire'  => REQUEST_TIME + 43200,//-1 never expires.
+//            'offset'  => $date,
+            'obj'     => [
+                'title'      => $title,
+                'desc'       => $desc,
+                'musicurl'   => $musicurl,
+                'hgmusicurl' => $musicurl,//$offset > 7 ? $musicurl : $hgmusicurl,
+            ],
+            'ga_data' => array(
+                'category' => 'lyapi_audio',
+                'action'   => $lylist_name[$process_index],
+            ),
+        ];
+        $tmp_body = isset($body)?$body:'';
+        // $backend_play = "\n浏览器／Safari中打开可快进暂停>https://ly.yongbuzhixi.com/fm/lywx.html?title=".urlencode($title)."&url=".$uri."&".str_replace('?', '', $upt);
+        if(isset($body) && !$is_lywx)  $resources['custommessage'] = $title."\n".$tmp_body;//."\n".$desc . $backend_play;
+        if($process_index==603 && !$is_lywx) { //TODO 其他留言板!
+//            https://api.drupal.org/comment/62589#comment-62589
+            $term_id = $lylist_tid[$process_index];
+            $url = Url::fromRoute('entity.taxonomy_term.canonical',['taxonomy_term'=>$term_id]);
+            global $base_url;
+            $url = $base_url.$url->toString();
+            $desc .=  "\n留言给周师母↓\n".$url;
+            $resources['custommessage'] = $title."\n".$tmp_body."\n".$desc;
+        }
+        return $resources;
+    }
+
+    //Save comment on index lylist term if keywords has @603 TODO:  @1101?
+    if ($is_certified && !$is_lywx){
+        if (strpos($keyword, '周师母') !== false) {
+            if (strpos($keyword, '@603') === false) {
+                $keyword .= '@603';
+            }
+        }
+        $comment_entity_id = FALSE;
+        foreach ($lylist_tid as $index => $tid) {
+            if (strpos($keyword, '@' . $index) !== false) {
+                $comment_entity_id = $tid;
+                $comment_on = $lylist_name[$index];
+            }
+            if ($weObj && $app_name == '良友知音') {
+                if (strpos($keyword, '周师母') !== false) {
+                    if (strpos($keyword, '@201') === false) {
+                        $keyword .= '@201';
+                    }
+                }
+                if (strpos($keyword, '@' . $lylist_lywx[$index]) !== false) {
+                    $comment_entity_id = $tid;
+                    $comment_on = $lylist_name[$index];
+                }
+            }
+        }
+        if ($comment_entity_id) {
+            $comment_data = [
+                'uid'                             => $weObj->getWxUid(),//TODO::date cc -7
+                'field_name'                      => 'field_lylist_comment',
+                'entity_type'                     => 'taxonomy_term',//node
+                'entity_id'                       => $comment_entity_id,
+                'subject'                         => Unicode::truncate($keyword, '20', true, true),
+                'comment_body'                    => array(
+                    'value'  => $keyword,
+                    'format' => 'plain_text',
+                ),
+                'status'                          => CommentInterface::PUBLISHED,
+            ];
+            if($entity_id = lyapi_get_meta_entity_id($comment_entity_id, date('Ymd'))){
+               $comment_data['field_lymeta_entity_id'] = $entity_id;
+            }
+            $comment = Comment::create($comment_data);
+            $comment->save();
+            \Drupal::logger(__FUNCTION__)->notice('comment->save:' . $keyword);
+            $url = $comment->toUrl('canonical', array('absolute' => true))->toString();
+            $resources = array(
+                'type'    => 'text',
+                'expire'  => REQUEST_TIME - 1,//expires soon.
+                'ga_data' => array(
+                    'category' => 'lyapi_comment',
+                    'action'   => $comment_on,
+                ),
+                'obj'     => array(
+                    'text' => "<a href='" . $url . "'>留言评论成功!</a>",// /comment/5
+                )
+            );
+            return $resources;
+        }
+    }
+
+    if($is_lywx){
+        //金句
+        if($keyword=='金句'){
+            $file_path = DRUPAL_ROOT.'/sites/default/files/jinju/';
+            $jpg = '@'.$file_path.date('W').'.jpg';
+            $resources = [
+                'keyword' => $keyword,
+                'type'    => 'image',
+                'expire'  => -1,
+                'obj'     => array('media'=>$jpg),
+                'ga_data' => array(
+                    'category' => 'lyapi_ju',
+                    'action'   => 'get',
+                ),
+            ];
+            return $resources;
+        }
+    }
+
+    if($is_lywx)
+    if (preg_match('/\D+/', $keyword)){ //非数字
+//        $weObj->transfer_customer_service()->reply();
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'kf_create_session',
+            'expire'  => -1,
+            'ga_data' => array(
+                'category' => 'lyapi_kf',
+                'action'   => 'new_session',
+            ),
+        ];
+        return $resources;
+    }else{
+        $tid = 298;
+        $term = Term::load($tid);
+        $url = $term->get('field_wechat_menu_url')->value;
+        $img = array(
+            'Title'=>"收听节目代号",
+            'Description'=>"欢迎收听我们的节目！知音‧牵手‧同行 ※ 为你送上精彩节目和活动！",
+            'PicUrl'=>'https://mmbiz.qlogo.cn/mmbiz/JkVibryc6qrY4zkXwy5SPZbur1Jd7HMRneGCr0xhsqEJFXyQ0XkTqZmG8xCPIadhCt4GJk0kibtevrUIJ2Wpw7ag/0?wx_fmt=jpeg',
+            'Url'=>$url,
+        );
+        $news[] = $img;
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'news',
+            'expire'  => -1,//-1 never expires.
+//            'offset'  => $date,
+            'obj'     => $news,
+            'ga_data' => array(
+                'category' => 'lyapi_news',
+                'action'   => 'menu',
+            ),
+        ];
+        return $resources;
+    }
+}
+
+function ly_stream_menu()
+{
+    //  【635】听书‧想飞
+    // 【634】给力人生
+    return '▶良友广播节目单
+  -----------------------------
+  生活智慧
+  【609】微播出炉
+  【612】书香园地
+  【614】今夜心未眠
+  【608】绝妙当家
+  【610】生活无国界
+  【611】零点零距离
+  【613】 爱广播
+  【653】我们仨，还有你
+  【657】这个注意真好
+  关怀辅导
+  【603】空中辅导
+  【601】无限飞行号
+  【602】 心磁场
+  婚恋家庭
+  【604】恋爱季节
+  【605】幸福满家园
+  【606】亲情不断电
+  【607】欢乐卡恰碰
+  诗歌音乐
+  【623】齐来颂扬
+  【615】彩虹桥
+  【616】长夜的牵引
+  慕道探索
+  【639】生命的福音
+  【617】现代人的希望
+  【656】津津乐道
+  生命成长
+  【620】旷野吗哪
+  【618】献上今天
+  【619】拥抱每一天
+  【624】施恩座前
+  【640】这一刻清心
+  【628】空中崇拜
+  【652】燃亮的一生
+  【632】佳美脚踪
+  【625】真理之光
+  【636】生根建造
+  【637】信仰百宝箱
+  学习真道
+  【621】真道分解
+  【622】圣言盛宴
+  【627】聆听主道
+  【631】经动人心
+  【630】好牧人
+  【629】善牧良言
+  【654】与神同行
+  【638】生活之光
+  中英双语
+  【633】蓝天绿洲
+  【648】天路导向
+  【649】天路导向粤
+  【655】蔚蓝心情
+  少数民族
+  【650】恩典与真理
+  【651】爱在人间
+  栽培训练
+  【626】接棒人
+  【641】良院基础
+  【642】良院本科1
+  【643】良院本科2
+  【644】良院进深1
+  【645】良院进深2
+  【646】晨曦讲座
+  【647】良院专区
+   回复【】内容[调皮]不带中括号
+   点击▶️收听[抱拳]';
+}
+
+/**
+ * add blow cron for auto get info for txly2.net/cc 凌晨1点1次/分 晚上8点2次\/=>/
+ * 0 1 * * * wget -O - http://api.yongbuzhixi.com/lyapi/getmeta >/dev/null 2>&1
+ * *\/30 20 * * * wget -O - http://api.yongbuzhixi.com/lyapi/getmeta >/dev/null 2>&1
+ */
+function lyapi_get_meta()
+{
+    $lylistvname = 'lylist';
+    $container = \Drupal::getContainer();
+    //https://api.drupal.org/api/drupal/core!modules!taxonomy!src!TermStorage.php/function/TermStorage%3A%3AloadTree/8.2.x
+    $terms = $container->get('entity.manager')->getStorage('taxonomy_term')->loadTree($lylistvname, 0, NULL, TRUE);
+    foreach ($terms as $term) {
+        /* @var $term Term */
+        $code = $term->get('field_term_lylist_code')->value;//ee
+        $title = $term->getName();
+        $tid = $term->id();
+        $date = date('Ymd');
+        //如果今天的存在,continue,防止多次get——html,一天至少运行52次!
+        //check if today has audio?
+        $today_has_program = FALSE;
+        $time = time();
+        $weekday = date('N', $time);//1-7  w 0-6
+        $hasday = $term->get('field_term_lylist_day')->value;//17=>1-7 15=>1-5 67=>weekend 7=>7 6=>6 135=>135 74 周五周六无,
+        if (!$hasday) continue;
+        $hasday_len = strlen($hasday);
+        if ($hasday_len == 1) {// 6 7
+            if ($weekday == $hasday) $today_has_program = TRUE;
+        } elseif ($hasday_len == 2) {//15
+            $begin = substr($hasday, 0, 1);
+            $end = substr($hasday, -1);
+            if ($weekday >= $begin && $weekday <= $end) $today_has_program = TRUE;
+            if (!$today_has_program) {//74
+                if ($weekday >= $end && $weekday <= $begin) $today_has_program = TRUE;
+            }
+        } else {//135 146
+            for ($i = 0; $i < strlen($hasday); $i++) {
+                if ($weekday == $hasday[$i]) $today_has_program = TRUE;
+            }
+        }
+        if (!$today_has_program) {
+            continue;
+        }
+        if ($today_has_program && lyapi_get_meta_entity_id($tid, $date)) continue;
+        if(strpos($code, 'lts') !== false)  continue; //lts except!!!
+        if(in_array($code, ['tu','bk','sr','zz'])){
+            continue;
+        }
+        $url = 'http://txly2.net/' . $code;
+        //https://github.com/sunra/php-simple-html-dom-parser/issues/41
+        //https://stackoverflow.com/questions/42685814/file-get-contents-stream-does-not-support-seeking-when-was-php-behavior-abo
+        
+        $headers = get_headers($url, 1);
+        if ($headers[0] != 'HTTP/1.1 200 OK') continue;
+        $html = file_get_html($url,false,null,0);
+        if (!$html) {
+            \Drupal::logger(__FUNCTION__)->notice('error get txly2/' . $code);
+            $uri = 'https://sls-prod.yongbuzhixi.com/html/post';
+            try {
+              $response = \Drupal::httpClient()->post($uri,[
+                'json'=> [
+                    'url'=>$url
+                ]
+              ]);
+              //array('headers' => array('Accept' => 'application/json'))
+              $html = (string) $response->getBody();
+              if (empty($html)) {
+                \Drupal::logger(__FUNCTION__)->notice('error2 serverless txly2/' . $code);
+                continue;
+              }else{
+                $html = str_get_html($html);
+              }
+          }catch (RequestException $e) {
+              continue;
+          }
+        }
+        if (!isset($html->find('.ss-title p', 0)->plaintext)) continue;
+        $body = $html->find('.ss-title p', 0)->plaintext;
+        $title_get = $html->find('.ss-title a', 1)->plaintext;
+        $dates = explode('-', $title_get);
+        $date = '';
+        if (is_array($dates)) $date = end($dates);
+        if($date != date('Ymd')) continue;
+        if (save_lymeta($tid, $body, $date)) {
+            \Drupal::logger(__FUNCTION__)->notice('get ' . $code . '=> ' . $title . '=> ' . $date . '=> ' . $tid);
+        } else {
+            \Drupal::logger(__FUNCTION__)->notice('error get ' . $code . '=> ' . $title . '=> ' . $date . '=> ' . $tid);
+        }
+    }
+
+}
+
+//get entity id
+//delete lyapi_get_meta_nid
+function lyapi_get_meta_entity_id($tid, $date){
+    $type = 'lymeta';
+    $bundle = 'lyprogram';
+    $created = strtotime($date);
+    $fields = [
+        'field_lyprogram_tid.entity.tid'=> $tid,
+        'created'=> $created
+    ];
+    $array = tools_wxapi_get_entity_ids($fields,$bundle,$type,1);
+    if($array) return $array[0];
+    return false;
+}
+/**
+ * // delete!!! @param $code ee
+ * @param $tid 11-52
+ * // delete!!! @param $title 空中辅导
+ * @param $body '热线电话....'
+ * @param null $date '20161207'
+ * @return \Drupal\Core\Field\FieldItemListInterface
+ */
+function save_lymeta($tid, $body, $date = NULL)
+{
+    if (!$date) $date = date('Ymd');
+    //check if exsits ,don't save!
+    $entity_id = lyapi_get_meta_entity_id($tid, $date);
+    if ($entity_id) {
+        return $entity_id;
+    }else{
+        $created = strtotime($date.' 00:00:00');
+        $data = array(
+          'type' => 'lyprogram', 
+          'created' => $created,
+          'title' => $body,
+          'uid' => 268,//良友知音
+          'field_lyprogram_tid' => [$tid],
+        );
+        $entity = Drupal::entityManager()
+          ->getStorage('lymeta')
+          ->create($data);
+        $entity->save();
+        // \Drupal::logger(__FUNCTION__)->notice($body);
+        //https://gist.github.com/facine/35bb291811c146b6fc9e#file-create_node-php
+        return $entity->id();
+    }
+}
+
+/**
+ * @param $path 图片相对路径
+ * @param int $etime 授权1分钟后过期
+ * @param string $key
+ * @return string token 防盗链密钥
+ */
+function upyun_get_token($path, $etime = 86400, $key = 'ly729')
+{
+    $etime = time() + $etime; // 授权1分钟后过期
+    return '?_upt=' . substr(md5($key . '&' . $etime . '&' . $path), 12, 8) . $etime;
+}
+// drupal 8 comment newer first
+// https://www.drupal.org/node/1095656#comment-9778205
+function lyapi_query_comment_filter_alter(Drupal\Core\Database\Query\AlterableInterface $query) {
+    $orderby = &$query->getOrderBy();
+
+    // Sorting for threaded comments.
+    if (isset($orderby['torder'])) {
+        // Sort by root parent first, then normal threaded.
+        $query->addExpression("SUBSTRING_INDEX(c.thread, '.', 1)", 'rparent');
+        $orderby = array('rparent' => 'DESC') + $orderby;
+    }
+    // Sorting for flat comments.
+    else if (isset($orderby['c.cid'])) {
+        $direction = 'DESC';
+
+        $orderby['c.cid'] = $direction;
+        $orderby = array('c.created' => $direction) + $orderby;
+    }
+}
+function lyapi_form_comment_lylist_comments_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+//    dpm($form_id);
+    if($form_id=='comment_lylist_comments_form'){
+//        ksm($form);
+        $form['actions']['submit']['#submit'][] = 'comment_redirect_first_page_submit';
+    }
+}
+
+/**
+ * @see \Drupal\comment\CommentForm::save()
+ */
+function comment_redirect_first_page_submit(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+//    $comment = $this->entity;
+//    $comment->getCommentedEntity();
+    $entity = $form_state->getFormObject()->getEntity();
+    /* @var $entity Entity */
+    $uri = $entity->urlInfo();
+    $query = [];
+    // Find the current display page for this comment.
+//    $field_definition = $this->entityManager->getFieldDefinitions($entity->getEntityTypeId(), $entity->bundle())[$field_name];
+//    $page = $this->entityManager->getStorage('comment')->getDisplayOrdinal($comment, $field_definition->getSetting('default_mode'), $field_definition->getSetting('per_page'));
+//    if ($page > 0) {
+//        $query['page'] = $page;
+//    }
+    $query['page'] = 0;
+    // Redirect to the newly posted comment.
+    $uri->setOption('query', $query);
+    $uri->setOption('fragment', 'comment-' . $entity->id());
+    $form_state->setRedirectUrl($uri);
+}

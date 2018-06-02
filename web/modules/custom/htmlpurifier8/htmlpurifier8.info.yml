@@ -1,0 +1,6 @@
+name: htmlpurifier8
+description: 'htmlpurifier8'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x

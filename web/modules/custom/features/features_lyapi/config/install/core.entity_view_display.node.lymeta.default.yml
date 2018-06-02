@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.lymeta.body
+    - field.field.node.lymeta.field_lymeta_tid
+    - node.type.lymeta
+  module:
+    - text
+    - user
+id: node.lymeta.default
+targetEntityType: node
+bundle: lymeta
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 101
+    settings: {  }
+    third_party_settings: {  }
+  field_lymeta_tid:
+    weight: 102
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  links:
+    weight: 100
+hidden: {  }

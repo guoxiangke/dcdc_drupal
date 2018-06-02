@@ -1,0 +1,2 @@
+30 3 * * *	wget -O -   https://api.yongbuzhixi.com/cron/grace/video/fuyin >/dev/null 2>&1
+30 4 * * *	wget -O -   https://api.yongbuzhixi.com/cron/grace/content/tpehoc >/dev/null 2>&1

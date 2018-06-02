@@ -1,0 +1,8 @@
+langcode: zh-hans
+status: true
+dependencies: {  }
+name: Points
+vid: points
+description: 'points category'
+hierarchy: 0
+weight: 0

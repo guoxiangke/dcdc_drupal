@@ -1,0 +1,8 @@
+name: album 500 API
+description: 'Provides basic API for 500 member audio'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - wechat_api

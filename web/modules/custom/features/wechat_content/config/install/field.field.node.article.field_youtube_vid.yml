@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_youtube_vid
+    - node.type.article
+id: node.article.field_youtube_vid
+field_name: field_youtube_vid
+entity_type: node
+bundle: article
+label: youtube_vid
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

@@ -1,0 +1,19 @@
+langcode: zh-hans
+status: true
+dependencies:
+  module:
+    - eck
+id: points.field_points
+field_name: field_points
+entity_type: points
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

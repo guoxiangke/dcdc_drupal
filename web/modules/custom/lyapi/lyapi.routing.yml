@@ -1,0 +1,29 @@
+lyapi.get:
+  path: '/lyapi/get/{code}'
+  defaults:
+    _controller: '\Drupal\lyapi\Controller\LyapiController::getResource'
+    _title: 'Hello World'
+  requirements:
+    _permission: 'access content'
+
+lyapi.get_meta_nid:
+  path: '/lyapi/getmetanid/{tid}/{date}'
+  defaults:
+    _controller: '\Drupal\lyapi\Controller\LyapiController::getMetaNid'
+  requirements:
+    _permission: 'access content'
+
+lyapi.create_meta_node:
+  path: '/lyapi/getmeta'
+  defaults:
+    _controller: '\Drupal\lyapi\Controller\LyapiController::getMeta'
+  requirements:
+    _permission: 'access content'
+
+lyapi.cc:
+  path: '/lyapi/cc'
+  defaults:
+    _controller: '\Drupal\lyapi\Controller\LyapiController::clearCache'
+    _title: 'Hello World'
+  requirements:
+    _permission: 'access content'

@@ -1,0 +1,6 @@
+# wechat_api.config:
+#   title: 'Config Wechat Service'
+#   description: 'See mp.weixin.qq.com'
+#   menu_name: account
+#   route_name: wechat_api.wechatconfig
+#   weight: 9

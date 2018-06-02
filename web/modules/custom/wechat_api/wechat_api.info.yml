@@ -1,0 +1,13 @@
+name: Wechat API
+description: 'Provides basic API for Wechat user'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - d8_tools
+  - profile
+  -	features
+# required: true
+# configure: user.admin_index
+

@@ -1,0 +1,27 @@
+<?php
+/*add js to node view full!!!*/
+function mpservice_node_view(array &$build, \Drupal\Core\Entity\EntityInterface $node, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
+	if($view_mode=='full'){
+		$build['#attached']['library'][] = 'mpservice/drupal.node.fullview';
+		$bucket_url = 'http://up.yongbuzhixi.com';
+		if($node->bundle()=='article'){
+			if($vid = $node->get('field_youtube_vid')->value){
+				$path = "/tmp/youtube/$vid.mp4";
+				$build['#attached']['drupalSettings']['node']['video'] = $bucket_url.$path. upyun_get_token($path, 86400);
+			}
+			
+			if($path = $node->get('field_upyun_path')->value){
+				if(strpos($path, '.mp4')!==false){
+					$build['#attached']['drupalSettings']['node']['video'] = $bucket_url.$path. upyun_get_token($path, 86400);
+				}else{
+					$build['#attached']['drupalSettings']['node']['audio'] = $bucket_url.$path. upyun_get_token($path, 86400);
+				}
+			}
+			if($node->get('field_video_url')->value)
+				$build['#attached']['drupalSettings']['node']['video'] = $node->get('field_video_url')->value;
+
+			if($node->get('field_article_audio')->value)
+				$build['#attached']['drupalSettings']['node']['audio'] = $node->get('field_article_audio')->value;
+		}
+	}
+}

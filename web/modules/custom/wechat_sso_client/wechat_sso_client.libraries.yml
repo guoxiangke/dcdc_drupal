@@ -1,0 +1,8 @@
+wechat_sso_client:
+  version: VERSION
+  js:
+    js/wechat_sso_client.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings

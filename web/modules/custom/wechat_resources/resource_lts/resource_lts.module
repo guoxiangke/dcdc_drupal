@@ -1,0 +1,252 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: dale.guo
+ * Date: 12/16/16
+ * Time: 10:14 AM
+ */
+use Drupal\wechat_api\Plugin\Wechat\Wechat;
+
+
+/**
+ * hook_rescources_info
+ */
+function resource_lts_rescources_info(){
+	$rescources[] = array(
+		'name' => 'lts',
+		'desc' => '良友圣经学院【#100】',
+	);
+	return $rescources;
+}
+
+/**
+ * @param $keyword
+ * @param Wechat|NULL $weObj
+ * @return array
+ */
+function resource_lts_wxresources_alter($keyword,Wechat $weObj=NULL){
+	$appname = '公众号:永不止息';
+	if($weObj){
+		$wechat_config = \Drupal::config('wechat_api.settings')->get('mpaccount_'.$weObj->uid);
+		$wechat_resources = $wechat_config['wechat_resources'];
+    $appname = "公众号:" . $wechat_config['appname'];
+		//IF enable ly_resouce 600
+		if(!in_array('lts',$wechat_resources)) return [];
+	}
+
+	#101-999
+	if($keyword[0]!='#') return [];
+	// $subkey = str_replace('#', '', $keyword);
+	$index = substr($keyword, 1, 3);//101-999
+	if(!($index>=100&&$index<=999)) return [];
+
+	if(substr($index, 1)==='00'){
+		$menu_function = NULL;
+		if($index==100){
+			$menu_function = 'get_mp_lts_menu1';
+			if(!isset($wechat_config['lts_menu1']) || empty($wechat_config['lts_menu1']))
+				$wechat_config =  \Drupal::config('wechat_api.settings')->get('mpaccount_21');
+			$menu_text = $wechat_config['lts_menu1'];
+		}elseif($index==700){
+			$menu_function = 'get_mp_lts_menu2';
+			if(!isset($wechat_config['lts_menu2']) || empty($wechat_config['lts_menu2']))
+				$wechat_config =  \Drupal::config('wechat_api.settings')->get('mpaccount_21');
+			$menu_text = $wechat_config['lts_menu2'];
+		}
+		if($menu_function){
+			$resources = [
+				'keyword' => $keyword,
+				'type' => 'text',
+				'expire' => -1,//-1 never expires.
+				'obj' => [
+					'text' =>  $menu_text
+				],
+				'ga_data'   =>  array(
+					'category'        => 'lts33',
+					'action'          => 'menu_'.$menu_function,
+				),
+			];
+			return $resources;
+		}
+		// others 200-800
+		$num = substr($index,0,1);
+		$begin = $num.'00';
+		$end = $num.'99';
+		$text = '';
+		$add = '★';
+		$mavs = get_mp_ltsma();
+		foreach ($mavs as $key => $mav) {
+			if($key>$begin&&$key<=$end) {
+				if($mav['level']=='本科课程')
+					$add = '✿';
+				if($mav['level']=='进深课程')
+					$add = '☆';
+				if($mav['level']=='专辑课程')
+					$add = '*';
+				$text .= '【#'.$key.'】'.$mav['title'].$add."\n";
+			}
+		}
+
+		$resources = [
+			'keyword' => $keyword,
+			'type' => 'text',
+			'expire' => -1,//-1 never expires.
+			'obj' => [
+				'text' =>  $text."【#100】★启航课程✿本科课程\n【#700】☆进深课程\n回复【#".$num."01】收听\n回复【#".$num."010】查看讲义！[ThumbsUp]\n".$appname,
+			],
+			'ga_data'   =>  array(
+				'category'        => 'lts33',
+				'action'          => 'menu_'.$keyword,
+			),
+		];
+		return $resources;
+	}
+	$mavs = get_mp_ltsma();
+	if(!in_array($index, array_keys($mavs))){
+		//error!编码超出范围！暂时没有，敬请期待！
+		$resources = [
+			'keyword' => $keyword,
+			'type' => 'text',
+			'expire' => -1,//-1 never expires.
+			'obj' => [
+				'text' => "[大哭]编码有误，回复【#100】查看目录！".$appname,
+			],
+			'ga_data'   =>  array(
+				'category'        => 'lts33',
+				'action'          => '编码超出范围',
+			),
+		];
+		return $resources;
+	}
+	$mav = $mavs["$index"];
+	$total = $mav['count'];
+	$level = $mav['level'];
+	$count = substr($keyword, 4);//1-24-30
+	if($count>$total) {//error!编码不对
+		$resources = [
+			'keyword' => $keyword,
+			'type' => 'text',
+			'expire' => -1,//-1 never expires.
+			'obj' => [
+				'text' =>"[大哭]编码有误，超出最大范围！\n回复【#".$index."0】查看讲义！",
+			],
+			'ga_data'   =>  array(
+				'category'        => 'lts33',
+				'action'          => '编码不对',
+			),
+		];
+		return $resources;
+	}
+	if($count==='0'){//获取目录概括+//获取pdf
+		$link = 'new/'.$level.'/'.$mav['title'].'/'.$mav['title'].'.pdf';
+		$cdn = 'http://lts33.yongbuzhixi.com';
+		$etime = time()+864000; // 授权十天后过期
+		$key = 'ly729';   // token 防盗链密钥
+		$path = '/'.$link; // 图片相对路径
+		$sign = substr(md5($key.'&'.$etime.'&'.$path), 12,8).$etime;
+		$link = $cdn . $path .'?_upt='.$sign;
+		// watchdog('mp_lts', $link, array(), WATCHDOG_NOTICE, 'link');
+		$temp = @get_headers($link);
+		// watchdog('mp_lts', '<pre>'.print_r($temp, 1), array(), WATCHDOG_NOTICE, 'link');
+		if($temp[0] != 'HTTP/1.1 200 OK'){//远程暂无!!!
+			$resources = [
+				'keyword' => $keyword,
+				'type' => 'text',
+				'expire' => REQUEST_TIME + 43200,//-1 never expires.
+				'obj' => [
+					'text' =>  '【#'.$index.'】'.$mav['title']."\n课程有".$mav['count']."课\n属于".($mav['level']=='基础课程'?'启航课程':$mav['level'])."\n授课老师：".$mav['author']."\n回复【#".$index."1】到【#".$index.$total."】获取节目！\n每日获取同步【#".$index."】\n[大哭]本课程暂无讲义哦！",
+				],
+				'ga_data'   =>  array(
+					'category'        => 'lts33',
+					'action'          => '远程暂无',
+				),
+			];
+			return $resources;
+		}
+		$resources = [
+			'keyword' => $keyword,
+			'type' => 'text',
+			'expire' => REQUEST_TIME + 43200,//-1 never expires.
+			'obj' => [
+				'text' =>  '【#'.$index.'】'.$mav['title']."\n课程有".$mav['count']."课\n属于".($mav['level']=='基础课程'?'启航课程':$mav['level'])."\n授课老师：".$mav['author']."\n<a href='http://pdfviewer.yongbuzhixi.com/web/viewer.html?pdf=".$link."'>》点此查看讲义</a>\n每日获取同步【#".$index."】\n<a href='".$link."'>》备用讲义链接</a>",
+			],
+			'ga_data'   =>  array(
+				'category'        => 'lts33',
+				'action'          => $mav['title'].'_pdf',
+			),
+		];
+		return $resources;
+	}
+	$update = '';
+	$expire = -1;
+	if($keyword=='#'.$index) {
+		$count = date('z')%$total;//按顺序循环播出，每天一集！
+		$count++;
+		$update = ' 每日更新';
+		$expire = REQUEST_TIME + 43200;
+	}
+	$rep = str_pad($count, 2,'0',STR_PAD_LEFT);
+	$link = 'new/'.$level.'/'.$mav['title'].'/ma'.$mav['prefex'].$rep.'.mp3';
+	$path = '/'.$link; // 图片相对路径
+	$cdn = 'http://lts33.yongbuzhixi.com/';
+	$link = $cdn . ($link);//.'?_upt='.$sign;
+	// $temp = @get_headers($link);
+	// if($temp[0] != 'HTTP/1.1 200 OK'){//远程暂无!!!
+	//   $resources['key_'.$keyword]= array(
+	//     'type'  =>  'text',
+	//     'obj'   => array(
+	//       'text'  => "[大哭]本课程还没有开放哦！",
+	//     )
+	//   );
+	//   return $resources;
+	// }
+	$resources = [
+		'keyword' => $keyword,
+		'type' => 'music',
+		'expire' => $expire,//-1 never expires.
+		'upyun_path' =>  $path,
+		'obj' => [
+			'title' =>  '【'.$keyword.'】'.$mav['title'].'-'.$rep,
+			'desc'  =>  "点击▶️收听".$update.$appname." 良院".str_replace('课程', '', ($level=='基础课程'?'启航':$level)),
+			'musicurl'  =>  $link,
+			'hgmusicurl'  => $link,
+		],
+		'ga_data'   =>  array(
+			'category'        => 'lts33',
+			'action'          => $mav['title'].'_'.$rep,
+		),
+	];
+	return $resources;
+}
+
+
+
+function get_mp_ltsma(){
+	$cached_resources_lylts = 'wxresources_lts_terms';
+	if($cache = \Drupal::cache()->get($cached_resources_lylts)){
+		$lylts_terms = $cache->data;
+	}else{
+		$lylistvname = 'lylts';
+		$field_pre = 'field_term_'.$lylistvname.'_';
+		$container = \Drupal::getContainer();
+		//https://api.drupal.org/api/drupal/core!modules!taxonomy!src!TermStorage.php/function/TermStorage%3A%3AloadTree/8.2.x
+		$terms = $container->get('entity.manager')->getStorage('taxonomy_term')->loadTree($lylistvname,0,NULL,TRUE);
+		$fields = ['title'=>'课程名称','prefex'=>'命名前缀','count'=>'课程数量','level'=>'基础课程\本科课程\进深课程\专辑课程','category'=>'标签分类','author'=>'授课老师','pdf'=>'有无课程讲义0/1'];
+		$lylts_terms = [];
+		if (!empty($terms)) {
+			/* @var $term Term */
+			foreach($terms as $term) {
+				$index =  $term->get($field_pre.'code')->value;//'code'=>'获取代码(without #)101-999'
+				if(!$index) continue;
+				foreach(array_keys($fields) as $field_key)
+				{
+					$field_name = $field_pre.$field_key ;
+					$lylts_terms[$index][$field_key]= $term->get($field_name)->value;
+				}
+//				break;
+			}
+			\Drupal::cache()->set($cached_resources_lylts, $lylts_terms,-1);
+		};
+	}
+	return $lylts_terms;
+}

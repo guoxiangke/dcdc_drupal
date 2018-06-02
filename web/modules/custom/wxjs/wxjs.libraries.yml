@@ -1,0 +1,21 @@
+wx_js:
+  version: VERSION
+  js:
+    js/jweixin-1.2.0.js: {}
+    js/wx.config.js: {}
+    js/demo.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+
+wx_js.demo:
+  version: VERSION
+  js:
+    js/jweixin-1.2.0.js: {}
+    js/wx.config.js: {}
+    js/demo.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings

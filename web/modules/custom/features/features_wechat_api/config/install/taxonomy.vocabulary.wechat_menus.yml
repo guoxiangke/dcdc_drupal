@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Wechat menus'
+vid: wechat_menus
+description: 认证菜单
+hierarchy: 0
+weight: 0

@@ -1,0 +1,200 @@
+<?php
+
+/**
+ * @file
+ * Contains youtube_queue.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use \GuzzleHttp\Exception\RequestException;
+use Drupal\node\Entity\Node;
+/**
+ * Implements hook_help().
+ */
+function youtube_queue_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the youtube_queue module.
+    case 'help.page.youtube_queue':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Get youtube contents by queue') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+
+/**
+ * Implements HOOK_node_presave
+ */
+function youtube_queue_node_presave(Drupal\Core\Entity\EntityInterface $node){
+	if($node->id()) return;//Only for new created.
+  /**
+   * When create a article with field_youtube_vid, add to queue!
+   */
+  if($node->bundle()=='article' && $node->hasField('field_youtube_vid') && !$node->get('field_youtube_vid')->isEmpty()){
+    $field_youtube_vid = $node->get('field_youtube_vid')->getValue();
+    if(isset($field_youtube_vid[0]['value']) && $field_youtube_vid[0]['value']){
+      $vid = $field_youtube_vid[0]['value'];
+      $quality = 720;
+   	  $field_youtube_quality = $node->get('field_youtube_quality')->getValue();
+   	  if(isset($field_youtube_quality[0]['value']) && $field_youtube_quality[0]['value']){
+      	$quality = 360;
+   	  }
+      /** @var QueueFactory $queue_factory */
+      $queue_factory = \Drupal::service('queue');
+      /** @var QueueInterface $queue */
+      $queue = $queue_factory->get('cron_youtube_publisher');
+      $item = new \stdClass();
+      $item->vid = $vid;
+      $item->quality = $quality;
+      $queue->createItem($item);
+    }
+  }
+  /**
+   * For album with field_from_url = youtube
+   */
+  if($node->bundle()=='album' && $node->hasField('field_from_url') && !$node->get('field_from_url')->isEmpty()){
+      $field_from_url = $node->get('field_from_url')->getValue();
+      $uri = $field_from_url[0]['uri'];
+		  if (strpos($uri, 'youtube.com/') !== FALSE ) {
+		    $type = $node->get('field_bundle_type')->value;
+		    $field_bundle_author = $node->get('field_bundle_author')->getValue();
+		    $uid = 1;
+		    if(isset($field_bundle_author[0]['target_id']) && $field_bundle_author[0]['target_id']){
+		      $uid = $field_bundle_author[0]['target_id'];
+		    }
+		    $field_tag_tid = FALSE;
+		    $field_tags = $node->get('field_tags')->getValue();
+		    if(isset($field_tags[0]['target_id']) && $field_tags[0]['target_id']){
+		      $field_tag_tid = $field_tags[0]['target_id'];
+		    }
+		    $quality = 720;
+	   	  $field_youtube_quality = $node->get('field_youtube_quality')->getValue();
+	   	  if(isset($field_youtube_quality[0]['value']) && $field_youtube_quality[0]['value']){
+	      	$quality = 360;
+	   	  }
+		    $target_ids = youtube_playlist_node_collect($uri,$quality,$type,$uid,$field_tag_tid);
+		    foreach($target_ids as $target_id){
+		        // $node->field_nodes_references[] = $target_id;
+		      $node->field_nodes_reference->appendItem($target_id);
+		    }
+		  }
+  }
+}
+
+/**
+ * Implements HOOK_node_delete
+ * Delete album youtube sublist article 
+ * && article youtube video of Upyun
+ */
+function youtube_queue_node_delete(Drupal\Core\Entity\EntityInterface $node) {
+	if($node->bundle()=='article' && $node->hasField('field_youtube_vid') && !$node->get('field_youtube_vid')->isEmpty()){
+		//delete on upyun!
+		$field_youtube_vid = $node->get('field_youtube_vid')->getValue();
+    if(isset($field_youtube_vid[0]['value']) && $field_youtube_vid[0]['value']){
+      $vid = $field_youtube_vid[0]['value'];
+      lambda_delete_upyun_video($vid);
+    }
+	}
+
+	if($node->bundle()=='album' && $node->hasField('field_from_url') && !$node->get('field_from_url')->isEmpty()){
+		//delete all sub article & trigger hook_node_delete!
+		$field_nodes_reference = $node->field_nodes_reference->getValue();
+		foreach ($field_nodes_reference as $key => $node_reference) {
+			\Drupal::logger('field_nodes_reference')->notice($node_reference['target_id']);
+			$nids[] = $node_reference['target_id'];
+		}
+		entity_delete_multiple('node', $nids);//node_delete
+	}
+
+}
+
+/**
+ * @param string $url
+ * @param int $quality
+ * @param string $type
+ * @param int $uid
+ * @param bool $tid
+ * wxapi_graceYoutube
+ * @return array|bool
+ */
+function youtube_playlist_node_collect($url='https://www.youtube.com/watch?v=y4KJegd8inI&list=PLgFvTLP0QRDsUhs2GrsWS6eRUi4GwZtGQ',$quality=720,$type="grace",$uid=1,$tid=FALSE){
+    //1.get html from serverless : post url to 
+    $uri = 'https://sls-prod.yongbuzhixi.com/html/post';
+    try {
+      $response = \Drupal::httpClient()->post($uri,[
+        'json'=> [
+            'url'=>$url
+        ]
+      ]);
+      //array('headers' => array('Accept' => 'application/json'))
+      $data = (string) $response->getBody();
+      if (empty($data)) {
+        \Drupal::logger('wxapi_graceYoutube')->notice('sls get no html error');
+        return FALSE;
+      }
+      $str_html = json_decode($data)->output;
+      // print_r($str_html);die();
+      $html = str_get_html($str_html);
+      $output=[];
+
+      //grace
+      foreach($html->find('.pl-video') as $element) {
+          if (isset($element->attr['data-video-id']) && isset($element->attr['data-title'])) {
+            $youtube_vid= $element->attr['data-video-id'];
+            $title= $element->attr['data-title'];
+            // $title = '20131116 恩典365 - 婚姻家庭系列 - 真愛要等待01 : 持守聖潔得著祝福';
+            $created = REQUEST_TIME;
+            if($type=='grace'){
+              preg_match('/\d{8}/', $title,$matches);
+              $date  = $matches[0];
+              $time_str = implode('-',[substr($date, 0,4),substr($date, 4,2),substr($date, 6,2) ]) . ' 00:00:00';
+              $created =  strtotime($time_str);
+            }
+            //youtube_vid
+            $newNode = [
+                'type'             => $type,
+                'created'          => $created,
+                'changed'          => $created,
+                'uid'              => $uid,
+                'title'            => $title,
+                'field_youtube_vid' => [$youtube_vid]
+              ];
+              if($tid) $newNode['field_tags'][] = ['target_id'=>$tid];
+              if($quality==360) $newNode['field_youtube_quality'][] = ['value'=>TRUE];
+              $node = Node::create($newNode);
+              $node->save();
+              \Drupal::logger('wxapi_graceYoutube_getNode')->notice($node->id() . '=>' . $title);
+              $output[]=$node->id();
+            }
+
+        }
+        return $output;
+    }
+    catch (RequestException $e) {
+      return FALSE;
+    }
+    // 2.str2html get dom
+}
+
+/**
+ * @param $vid
+ * lambda_delete_upyun_video
+ * @return bool
+ */
+function lambda_delete_upyun_video($vid){
+  try{
+      $request = \Drupal::httpClient()
+        ->post('https://l.yongbuzhixi.com/youtube/delete/mp4', [
+          'timeout' => 30,
+          'body' => '{"vid":"'.$vid.'"}'
+        ]);
+      \Drupal::logger('lambda_delete_upyun_video')->notice(json_decode($request->getBody())->message);
+      return $request->getStatusCode()==200?TRUE:FALSE;
+    }
+    catch (RequestException $e) {
+      return FALSE;
+    }
+}

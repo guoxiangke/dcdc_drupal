@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+id: lylist_comments
+label: 'Lylist comments'
+target_entity_type_id: taxonomy_term
+description: 'for lymeta'

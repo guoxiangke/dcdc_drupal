@@ -1,0 +1,4 @@
+wechat_api.wechatconfig:
+  route_name: wechat_api.wechatconfig
+  base_route: entity.user.canonical
+  title: '云配置'

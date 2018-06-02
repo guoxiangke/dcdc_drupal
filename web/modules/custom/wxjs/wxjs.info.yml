@@ -1,0 +1,6 @@
+name: Wechat JS API
+description: 'Provides basic API for Wechat user'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x

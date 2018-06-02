@@ -1,0 +1,166 @@
+<?php
+use Drupal\Component\Utility\Unicode;
+use Drupal\node\Entity\Node;
+use Drupal\Core\Url;
+
+
+// [
+// 	'status'=>1,  // NodeInterface::PUBLISHED
+//  'promote'=>1
+//  'sticky'=>1
+// 	'created'=>'190099202',
+// 	'field_tags.entity.name'=>'cats',
+// 	'field_lymeta_tid.entity.tid'=>$tid
+// ]
+function tools_wxapi_get_nid($fields,$bundle='grace',$count=1,$uid=0){
+	$nids = tools_wxapi_get_nids($fields,$bundle,$count,$uid);
+	if($nids) return $nids[0];
+	return NULL;
+}
+//-1 ==get all nids!!!
+function tools_wxapi_get_nids($fields,$bundle='grace',$count=1,$uid=0){
+    // $created = strtotime($date . ' 08:00:00 AM');
+    $query = \Drupal::entityQuery('node');
+    $query->condition('type', $bundle);
+    if($uid) $query->condition('uid', $uid);
+    foreach($fields as $key => $value) {
+    	$query->condition($key, $value);
+    }
+    $query->sort('nid', 'DESC');
+    if($count>0) $query->range(0, $count);
+
+//  https://www.sitepoint.com/drupal-8-version-entityfieldquery/
+//	https://lakshminp.com/using-entity-api-drupal-8
+//  ->condition('field_tags.entity.name', 'cats');
+    $entity_ids = $query->execute();
+    if (count($entity_ids)) {
+      return array_values($entity_ids);
+    } else {
+        return [];
+    }
+}
+function tools_wxapi_get_entity_id($fields,$bundle='grace',$type='node',$uid=0){
+    $nids = tools_wxapi_get_entity_ids($fields,$bundle,$type,1,$uid);
+    if($nids) return $nids[0];
+    return NULL;
+}
+//copy of tools_wxapi_get_nids
+function tools_wxapi_get_entity_ids($fields,$bundle='grace',$type='node',$count=1,$uid=0,$order="DESC"){
+    $query = \Drupal::entityQuery($type);
+    $query->condition('type', $bundle);
+    if($uid) $query->condition('uid', $uid);
+    foreach($fields as $key => $value) {
+        $query->condition($key, $value);
+    }
+    $query->sort('id', $order);
+    if($count>0) $query->range(0, $count);
+
+//  https://www.sitepoint.com/drupal-8-version-entityfieldquery/
+//  https://lakshminp.com/using-entity-api-drupal-8
+//  ->condition('field_tags.entity.name', 'cats');
+    $entity_ids = $query->execute();
+    if (count($entity_ids)) {
+      return array_values($entity_ids);
+    } else {
+        return [];
+    }
+}
+
+function tools_wechat_api_get_news($nids){
+    $news=[];
+    foreach ($nids as $key => $nid) {
+        $node = Node::load($nid);
+        $desc = $node->body->summary?:Unicode::truncate($node->body->value, '54', TRUE, TRUE);
+        if(!$desc) $desc="只有音频/视频";
+        $url = Url::fromRoute('entity.node.canonical', ['node' => $nid],['absolute' => TRUE])->toString();
+        $picurl=null;
+        if(!$node->field_image_url->isEmpty()) $picurl = $node->field_image_url->value;
+        if(!$node->field_image->isEmpty()) {
+            $fid = $node->field_image->getValue()[0]['target_id'];
+            // https://drupal.stackexchange.com/questions/200741/generate-image-url-from-fid
+            $file = \Drupal\file\Entity\File::load($fid);
+            $picurl = file_create_url($file->getFileUri());
+        }
+        if(!$picurl)  $picurl = 'http://mmbiz.qpic.cn/mmbiz_jpg/I2rbxqsBRK3W4pJUhm0Cj304u9fUsxPtkPZaiaZ23J5WDzcNfbQE0Szy3UMJzOz5coloCdh2JWN58BOic3E94cMw/0?wx_fmt=jpeg';
+        $img = array(
+          'Title'=> $node->getTitle(),
+          'Description'=>$desc,
+          'PicUrl'=> $picurl,//field_image_url($node->field_image['und'][0]['uri']),
+          'Url'=> $url,
+        );
+        $news[] = $img;
+    }
+    return $news;
+}
+
+
+function tools_get_titles($nids=[]){
+    $query = \Drupal::database()->select('node_field_data', 't');
+    $query->addField('t', 'title');
+    $query->condition('t.nid', $nids, 'IN');
+    $query-> orderBy('t.nid', 'DESC');
+    $titles = $query->execute()->fetchAllAssoc('title');
+    return array_keys($titles);
+}
+
+function _check_if_article_exsits($title = 'checktitle')
+{
+//  https://api.drupal.org/api/drupal/core!includes!database.inc/function/db_select/8.2.x
+    $query = \Drupal::database()->select('node__field_aticle_title', 't');
+    $query->addField('t', 'entity_id');
+    $query->condition('t.bundle', 'article');
+    $query->condition('t.field_aticle_title_value', $title);
+    $entity_id = $query->execute()->fetchField();
+    return $entity_id;
+}
+
+/**
+ * @param $openid
+ * @return $uid
+ */
+function _check_if_wechat_user_exsits($openid)
+{
+//  https://api.drupal.org/api/drupal/core!includes!database.inc/function/db_select/8.2.x
+    $query = \Drupal::database()->select('user__field_user_openids', 't');
+    $query->addField('t', 'entity_id');
+    $query->condition('t.bundle', 'user');
+    $query->condition('t.field_user_openids_value', $openid);
+    $uid = $query->execute()->fetchField();
+    return $uid;
+}
+
+
+//参数1：访问的URL，参数2：post数据(不填则为GET)，参数3：提交的$cookies,参数4：是否返回$cookies
+function curl_request($url, $post = '', $cookie = '', $returnCookie = 0)
+{
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_URL, $url);
+    curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)');
+    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
+    curl_setopt($curl, CURLOPT_AUTOREFERER, 1);
+    curl_setopt($curl, CURLOPT_REFERER, "http://XXX");
+    if ($post) {
+        curl_setopt($curl, CURLOPT_POST, 1);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($post));
+    }
+    if ($cookie) {
+        curl_setopt($curl, CURLOPT_COOKIE, $cookie);
+    }
+    curl_setopt($curl, CURLOPT_HEADER, $returnCookie);
+    curl_setopt($curl, CURLOPT_TIMEOUT, 10);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+    $data = curl_exec($curl);
+    if (curl_errno($curl)) {
+        return curl_error($curl);
+    }
+    curl_close($curl);
+    if ($returnCookie) {
+        list($header, $body) = explode("\r\n\r\n", $data, 2);
+        preg_match_all("/Set\-Cookie:([^;]*);/", $header, $matches);
+        $info['cookie'] = substr($matches[1][0], 1);
+        $info['content'] = $body;
+        return $info;
+    } else {
+        return $data;
+    }
+}

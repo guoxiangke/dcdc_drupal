@@ -1,0 +1,97 @@
+<?php
+/**
+ * @param $keyword
+ * @param Wechat|NULL $weObj
+ * @return array
+ */
+use Drupal\node\Entity\Node;
+use Drupal\Component\Utility\Unicode;
+use Drupal\wechat_api\Plugin\Wechat\Wechat;
+use Drupal\node\NodeInterface;
+
+/**
+ * hook_rescources_info
+ */
+function resource_search_rescources_info(){
+    $rescources[] = array(
+        'name' => 'search',
+        'desc' => '搜索我的文章（88 绝妙当家）',
+    );
+    $rescources[] = array(
+        'name' => 'search_share',
+        'desc' => '搜索共享文章',
+    );
+    return $rescources;
+}
+
+function resource_search_wxresources_alter($keyword, Wechat $weObj = NULL) {
+    if (!$weObj) return [];
+    $wechat_config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $weObj->uid);
+    $wechat_resources = $wechat_config['wechat_resources'];
+    $appname = "公众号:" . $wechat_config['appname'];
+    //IF enable 77
+    if (!in_array('search', $wechat_resources) && !in_array('search_share', $wechat_resources) ) return [];
+
+    $check_word = substr($keyword, 0, 2);
+    $search_word = trim(substr($keyword, 2));//index
+    $fields = [
+     'status'=>NodeInterface::PUBLISHED,  //1
+     // 'field_tags.entity.name'=>'FM77',
+     // 'field_lymeta_tid.entity.tid'=>$tid
+    ];
+    if ($check_word == 88 && !$search_word) {
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'text',
+            'expire'  => -1,//-1 never expires.
+            'obj'     => [
+                'text' => '回复88 绝妙当家 即可搜索！',
+            ],
+            'ga_data' => array(
+                'category' => 'menu get',
+                'action'   => '880',
+            ),
+        ];
+        return $resources;
+    }
+    if ($check_word == 88 && $search_word) {
+        $count = 7;
+        $query = db_select('node_field_data', 'p')
+          ->fields('p',array('nid','title'))
+          ->orderBy('created', 'DESC')
+          ->condition('title', '%' . db_like($search_word) . '%', 'LIKE')
+          ->range(0, $count);
+
+        if (in_array('search_share', $wechat_resources)){
+            // $nids = tools_wxapi_get_nids($fields,'article',8);
+        }else{
+            $uid = $weObj->uid;
+            $query->condition('uid',$uid);
+            // $nids = tools_wxapi_get_nids($fields,'article',8,$uid);
+        }
+        $records = $query->execute()->fetchAll();
+        $news = [];
+        foreach ($records as $record) {
+           $img = array(
+            'Title'=>$record->title,
+            'Description'=>'',
+            'PicUrl'=>'',
+            'Url'=> 'https://api.yongbuzhixi.com/node/'.$record->nid
+          );
+          $news[] = $img;
+        }
+
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'news',
+            'expire'  => $expire,
+            'obj'     => $news,
+            'ga_data' => array(
+                'category' => '88',
+                'action'   => $search_word,
+            ),
+        ];
+        return $resources;
+    }
+    // 
+}

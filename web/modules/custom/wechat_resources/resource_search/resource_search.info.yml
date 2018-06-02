@@ -1,0 +1,8 @@
+name: resource search API
+description: 'Provides basic API for search resources'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - wechat_api

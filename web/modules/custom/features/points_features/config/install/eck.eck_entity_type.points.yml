@@ -1,0 +1,9 @@
+langcode: zh-hans
+status: true
+dependencies: {  }
+id: points
+label: Points
+created: true
+changed: true
+uid: true
+title: true

@@ -1,0 +1,28 @@
+langcode: zh-hans
+status: true
+dependencies:
+  config:
+    - eck.eck_type.points.point
+    - field.storage.points.field_points_category
+    - taxonomy.vocabulary.points
+id: points.point.field_points_category
+field_name: field_points_category
+entity_type: points
+bundle: point
+label: 'points category'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      points: points
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

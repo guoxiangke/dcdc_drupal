@@ -1,0 +1,18 @@
+langcode: zh-hans
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_mp_accounts_ghid
+    - profile.type.wechat_account_data
+id: profile.wechat_account_data.field_mp_accounts_ghid
+field_name: field_mp_accounts_ghid
+entity_type: profile
+bundle: wechat_account_data
+label: mp_accounts_ghid
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

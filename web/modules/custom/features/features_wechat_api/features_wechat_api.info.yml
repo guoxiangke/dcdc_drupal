@@ -1,0 +1,14 @@
+name: 'Features Wechat API'
+description: "1 Profile Type; wechat_user_data \r\n2 roles; wechat_user wechat_account\r\n2Taxonomy vocabulary: (wechat_comments) (wechat_menus)\r\n1Comment type: wechat_comments"
+type: module
+core: 8.x
+dependencies:
+  - comment
+  - field
+  - options
+  - path
+  - profile
+  - taxonomy
+  - text
+  - user
+version: 8.x-1.0

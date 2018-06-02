@@ -1,0 +1,7 @@
+wechat_sso_client.response:
+  path: '/user/wechatsso'
+  defaults:
+    _controller: '\Drupal\wechat_sso_client\Controller\SsoController::ssoResponse'
+    _title: 'SSO LOGIN'
+  requirements:
+    _permission: 'access content'

@@ -1,0 +1,998 @@
+<?php
+
+use Drupal\Component\Utility\Unicode;
+use Drupal\node\Entity\Node;
+use Drupal\user\UserInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\comment\CommentInterface;
+use Drupal\comment\Entity\Comment;
+use Drupal\profile\Entity\Profile;
+use Drupal\profile\Entity\ProfileType;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\user\Entity\User;
+use Drupal\wechat_api\Plugin\Wechat\Wechat;
+use Drupal\Core\Url;    
+
+
+
+/**
+ * @param $uid
+ * @return array|Wechat
+ * @see WechatController::__init()
+ */
+function _mp_service_init_wechat($uid)
+{
+    //TODO：check if user has role Wechat account wechat_account
+    $weObj = &drupal_static(__FUNCTION__);
+    if (!isset($weObj)) {
+        $config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $uid);
+        $options = array(
+            'account'        => $uid,
+            'token'          => $config['token'],
+            'encodingaeskey' => $config['appaes'],
+            'appid'          => $config['appid'],
+            'appsecret'      => $config['appsecret'],
+        );
+        $weObj = new Wechat($options);
+    }
+    return $weObj;
+}
+
+function _recursion_get_menu($vid, $tid)
+{
+    $terms = \Drupal::entityManager()->getStorage('taxonomy_term')->loadTree($vid, $tid, 1, TRUE);
+    $menu_root = [];
+    if (!empty($terms)) {
+        /* @var $term Term */
+        foreach ($terms as $term) {//一级菜单
+            $arr_key = 'key';
+            $type = $term->get('field_wechat_menu_type')->value;
+            if ($type == 'view') $arr_key = 'url';
+            $sub_button = _recursion_get_menu($vid, $term->id());
+            if ($sub_button) {
+                $menu_root[] = [
+                    'name'       => $term->getName(),
+                    'sub_button' => $sub_button
+                ];
+            } else {
+                $menu_root[] = [
+                    'type'   => $type,
+                    'name'   => $term->getName(),
+                    $arr_key => $term->get('field_wechat_menu_url')->value,
+                ];
+            }
+        }
+    };
+    return $menu_root;
+}
+
+/**
+ * @param $uid
+ * @return array
+ * @see Wechat::createMenu()
+ */
+function _mp_get_wechat_menu($uid)
+{
+    $config = Drupal::config('wechat_api.settings')->get('mpaccount_' . $uid);
+    $vid = 'wechat_menus';
+    $root_tid = $config['menus_tid'];//公众号菜单根ID
+    $mp_menu = _recursion_get_menu($vid, $root_tid);
+    $newmenu = array(
+        'button' => $mp_menu,
+    );
+    return $newmenu;
+}
+
+// 全角半角转．
+function wechat_api_make_semiangle($str)
+{
+    // $search =  array('[',']',"'",'"', "收听",'','.','○','o','〇',',',':','|',' ','一',);
+    // $replace =  array('','','','','', '', '', '0', '0','0','', '','', '', '',);
+    // $keyword = str_replace($search, $replace, $keyword);
+//	'○' =>  '0','〇' =>  '0', '`' =>  '',
+//	':' =>  '', ' ' => '', '井' =>  '#',
+    $arr = array(
+        '０' => '0', '１' => '1', '２' => '2', '３' => '3', '４' => '4',
+        '５' => '5', '６' => '6', '７' => '7', '８' => '8', '９' => '9',
+        'Ａ' => 'A', 'Ｂ' => 'B', 'Ｃ' => 'C', 'Ｄ' => 'D', 'Ｅ' => 'E',
+        'Ｆ' => 'F', 'Ｇ' => 'G', 'Ｈ' => 'H', 'Ｉ' => 'I', 'Ｊ' => 'J',
+        'Ｋ' => 'K', 'Ｌ' => 'L', 'Ｍ' => 'M', 'Ｎ' => 'N', 'Ｏ' => 'O',
+        'Ｐ' => 'P', 'Ｑ' => 'Q', 'Ｒ' => 'R', 'Ｓ' => 'S', 'Ｔ' => 'T',
+        'Ｕ' => 'U', 'Ｖ' => 'V', 'Ｗ' => 'W', 'Ｘ' => 'X', 'Ｙ' => 'Y',
+        'Ｚ' => 'Z', 'ａ' => 'a', 'ｂ' => 'b', 'ｃ' => 'c', 'ｄ' => 'd',
+        'ｅ' => 'e', 'ｆ' => 'f', 'ｇ' => 'g', 'ｈ' => 'h', 'ｉ' => 'i',
+        'ｊ' => 'j', 'ｋ' => 'k', 'ｌ' => 'l', 'ｍ' => 'm', 'ｎ' => 'n',
+        'ｏ' => 'o', 'ｐ' => 'p', 'ｑ' => 'q', 'ｒ' => 'r', 'ｓ' => 's',
+        'ｔ' => 't', 'ｕ' => 'u', 'ｖ' => 'v', 'ｗ' => 'w', 'ｘ' => 'x',
+        'ｙ' => 'y', 'ｚ' => 'z',
+        '（' => '', '）' => '', '〔' => '', '〕' => '', '【' => '[',
+        '】' => ']', '〖' => '[', '〗' => ']', '“' => '', '”' => '"',
+        '‘' => '"', '’' => '"', '｛' => '{', '｝' => '}', '《' => '<',
+        '》' => '>',
+        '％' => '%', '＋' => '+', '—' => '-', '－' => '-', '～' => '-',
+        '：' => ':', '。' => '.', '、' => ',', '，' => ',', '、' => '.',
+        '；' => ',', '？' => '?', '！' => '!', '…' => '-', '‖' => '||',
+        '”' => '"', '’' => '', '‘' => '', '｜' => '', '〃' => '',
+        '　' => ' ', '＄' => '$', '＠' => '@', '＃' => '#', '＾' => '^', '＆' => '&', '＊' => '*',
+        '＂' => '"'
+    );
+
+    return strtr($str, $arr);
+}
+
+/**
+ * @param $keyword
+ * @param Wechat|NULL $weObj
+ * @return array|$resources Wechat response array
+ *
+ * hook_wxresources_alter DEMO
+ * mp_service_keyword_response
+ * 1.comment on 公众号留言板!=>发布到评论留言版关键字 @NAME
+ * 2.Save comment on index lylist term if keywords has @@
+ * 3.小蜜蜂角色添加
+ * 4.小蜜蜂链接微信文章收集
+ */
+function wechat_api_wxresources_alter($keyword, Wechat $weObj = NULL)
+{
+    $resources = NULL;
+    $comment_check_keyword = '';
+    if ($weObj) {
+        if($weObj->uid==268) return $resources;//TODO add switch!
+        /** @var  $user User */
+        $user = User::load($weObj->getWxUid());
+        $user_roles = $user->getRoles();
+        $user_has_permission = in_array('wechat_editor', $user_roles);
+        if ($keyword == '小蜜蜂') {//3.小蜜蜂角色添加
+            if(!$user_has_permission){
+                $user->addRole('wechat_editor');
+                $user->save();
+                $resources = [
+                    'keyword' => $keyword,
+                    'type'    => 'text',//kf_create_session //news //music
+                    'expire'  => REQUEST_TIME -1,
+                    'ga_data' => array(
+                        'category' => '小蜜蜂申请',
+                        'action'   => $user->id(),
+                    ),
+                    'obj'     => ['text' => "恭喜您已申请成为[永不止息-主内公众云]小蜜蜂收集员[强]\n您可以发送微信图文链接给永不止息服务号可收集文章啦[握手]\n永不止息，需要有你！[强]"]
+                ];
+            }else{
+                $resources = [
+                    'keyword' => $keyword,
+                    'type'    => 'text',//kf_create_session //news //music
+                    'expire'  => REQUEST_TIME -1,
+                    'obj'     => ['text' => "已有权限[强]\n您可以发送微信图文链接给永不止息服务号可收集文章啦[握手]\n永不止息，需要有你！[强]"]
+                ];
+            }
+        }
+
+        /* //4.小蜜蜂链接微信文章收集 Save content from mp link */
+        if (strpos($keyword, 'mp.weixin.qq.com/') !== FALSE) {
+            if ($user_has_permission) {
+                $resources = mp_getwxcontent($keyword, $weObj);
+                \Drupal::logger('mp_getwxcontent')->notice($keyword);
+            } else {
+                $resources = [
+                    'keyword' => $keyword,
+                    'type'    => 'text',
+                    'expire'  => REQUEST_TIME - 1,
+                    'obj'     => ['text' => "您无权限,谢谢!永不止息，需要有你！[强]"]
+                ];
+            }
+        }
+        $wechat_config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $weObj->uid);
+        $comment_check_keyword = isset($wechat_config['default_comment_text']) ? $wechat_config['default_comment_text'] : '@' . $wechat_config['appname'];
+    }
+    //comment on 公众号留言板!=>发布到评论留言版关键字 @NAME
+    if (strpos($keyword, $comment_check_keyword) !== false) {
+        $comment_entity_id = $wechat_config['comments_tid'];
+        $comment = Comment::create([
+                'uid'          => $weObj->getWxUid(),
+                'field_name'   => 'field_wechat_comments',
+                'entity_type'  => 'taxonomy_term',//node
+                'entity_id'    => $comment_entity_id,
+                'subject'      => Unicode::truncate($keyword, '100', TRUE, TRUE),
+                'comment_body' => array(
+                    'value'  => $keyword,
+                    'format' => 'plain_text',
+                ),
+                'status'       => CommentInterface::PUBLISHED,
+            ]
+        );
+        $comment->save();
+        \Drupal::logger(__FUNCTION__)->notice('comment->save:' . $keyword);
+        $url = $comment->toUrl('canonical', array('absolute' => true))->toString();
+        $resources = array(
+            'type'   => 'text',
+            'expire' => REQUEST_TIME - 43200,//expires soon.
+            'ga_data' => array(
+                'category' => 'wechat_comment',
+                'action'   => $url,
+            ),
+            'obj'    => array(
+                'text' => "<a href='" . $url . "'>评论留言成功!</a>",
+            )
+        );
+    }
+    return $resources;
+}
+
+/**
+ * hook_wxresources_text_alter
+ * TODO:: ONLY use in this File!
+ */
+function wechat_api_wxresources_text_alter(Wechat $weObj)
+{
+    $receive_contents = $weObj->getRevContent();
+
+    //preprocess  $receive_contents begin
+    if (strpos($receive_contents, '收到不支持的消息类型') !== false ||
+        strpos($receive_contents, '不带中括号') !== false ||
+        strpos($receive_contents, '良友广播节目单') !== false
+    ) {
+        $weObj->text("不支持的消息类型,请输入正确指令！")->reply();
+    }
+    if (strpos($receive_contents, '[cp]') !== false) {
+        $weObj->text("不支持的复制消息发送,请重新输入！")->reply();
+    }
+    //preprocess  $receive_contents end
+    //TODO: 处理$receive_contents 大小写 全半角 繁体转简体 trim ...
+    $keyword = wechat_api_make_semiangle(($receive_contents));//TODO no! strtolower
+//	\Drupal::logger('getRevContent processed')->notice($keyword);
+
+//	//TODO 客服关键字->转接客服
+//	$configs = \Drupal::config('wechat_api.settings')->get('mpaccount_'.$weObj->uid);
+////	\Drupal::logger('getRevContent')->notice('<pre>'.print_r($fk_keywords,1));
+//	$fk_array = explode("\n",$configs['kf_create_session']);
+//	if(in_array($keyword,$fk_array)){//TODO strpos!
+//		$resources = [
+//			'keyword' => '_kf_create_session',
+//			'type' => 'kf_create_session',//kf_create_session //news //music
+////			'obj' => "502永不止息，需要有你！[强]"
+//		];
+//		return $resources;
+//	}
+    $cached_resources_keyword = 'wxresources_' .$weObj->uid.'_'. $keyword;
+    if ($cache = \Drupal::cache()->get($cached_resources_keyword)) {
+        $resources = $cache->data;
+//		\Drupal::logger('get cache_resources')->notice($keyword);
+    } else {
+        $resources = \Drupal::moduleHandler()->invokeAll('wxresources_alter', array($keyword, $weObj));
+//		\Drupal::logger('get no cache_resources')->notice($keyword);
+        \Drupal::cache()->set($cached_resources_keyword, $resources, isset($resources['expire']) ? $resources['expire'] : -1);
+    }
+    //TODO:: use cache store user last command get which res! wechatres_255_2  history!
+    // $cached_user_last_resources_keyword = 'wxhistory_'.$weObj->uid.'_'.$weObj->getWxUid();
+    // \Drupal::cache()->set($cached_user_last_resources_keyword, $resources);
+    return $resources;
+}
+
+/**
+ * @param Wechat $weObj
+ * @return array 收集图文信息!
+ * TODO:: ONLY use in this File!
+ */
+function wechat_api_wxresources_link_alter(Wechat $weObj)
+{
+    $news = $weObj->getRevLink();
+    $resources = mp_getwxcontent($news['url'], $weObj);
+    return $resources;
+}
+
+/**
+ * Implements hook_wxresources_voice_alter().
+ * API.Ai
+ */
+function wechat_api_wxresources_voice_alter(Wechat $weObj) {
+	$voice = $weObj->getRevVoice();
+	$media_id = $voice['mediaid'];
+//	$audio = $weObj->getMedia($media_id);
+    if($weObj->uid != 268)
+        $weObj->voice($media_id)->reply();
+}
+
+/**
+ * @param Wechat $weObj
+ * @return array
+ * TODO:: ONLY use in this File!
+ */
+function wechat_api_wxresources_event_alter(Wechat $weObj)
+{
+    $event = $weObj->getRevEvent();
+    if(!$event){
+        return NULL;
+    }
+    $resources = [];
+    $resources = \Drupal::moduleHandler()->invokeAll('wx_event_alter', array('event', $weObj));
+    if($resources){
+        return $resources;
+    }
+    //事件的default处理
+//    \Drupal::logger(__FUNCTION__)->notice('<pre>'.print_r($event, 1));
+    switch ($event['event']){
+        case 'subscribe':
+            $config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $weObj->uid);
+            $resources = [
+                'keyword' => '_subscribe',
+                'type'    => 'text',
+                'ga_data'   =>  array(
+                    'category'        => 'event',
+                    'action'          => 'subscribe',
+                ),
+                'obj'     => ['text' => isset($config['subscribe_message'])?$config['subscribe_message']: "永不止息，需要有你！欢迎关注![强]"]
+            ];
+            break;
+        case 'unsubscribe':
+            $resources = [
+                'keyword' => '_unsubscribe',
+                'type'    => 'ga',
+                'ga_data'   =>  array(
+                    'category'        => 'event',
+                    'action'          => 'unsubscribe',
+                ),
+            ];
+            break;
+        case 'kf_create_session':
+            $resources = [
+                'keyword' => '_kf_create_session',
+                'type'    => 'kf_create_session',
+                'ga_data'   =>  array(
+                    'category'        => 'event',
+                    'action'          => 'kf_create_session',
+                ),
+            ];
+            break;
+        case 'kf_close_session':
+            $resources = [
+                'keyword' => '_kf_close_session',
+                'type'    => 'ga',
+                'ga_data'   =>  array(
+                    'category'        => 'event',
+                    'action'          => 'kf_close_session',
+                ),
+            ];
+            break;
+        case 'VIEW'://MP menu!
+            $resources = [
+                'keyword' => '_event_menu_view',
+                'type'    => 'ga',
+                'ga_data'   =>  array(
+                    'category'        => 'event_menu_view',
+                    'action'          => $event['key'],
+                ),
+            ];
+            break;
+        case 'CLICK'://MP menu!
+            $resources = [
+                'keyword' => '_event_menu_click',
+                'type'    => 'ga',
+                'ga_data'   =>  array(
+                    'category'        => 'event_menu_click_error',
+                    'action'          => $event['key'],
+                ),
+            ];// default ga data!
+            if (is_string($event['key'])) {
+                $keyword = $event['key'];
+                $resources = \Drupal::moduleHandler()->invokeAll('wxresources_alter', array($keyword, $weObj));
+                // ga_push_add_event(array(
+                //     'eventCategory'        => $resources['ga_data']['category'],
+                //     'eventAction'          => $resources['ga_data']['action'],
+                //     'eventLabel'           => 'event_menu_click',
+                //     'eventValue'           => 0,
+                //     // 'nonInteraction'       => FALSE,
+                // ));
+            }
+            break;
+        case 'WifiConnected':
+            $resources = [
+                'keyword' => '_WifiConnected',
+                'type'    => 'ga',
+                'ga_data'   =>  array(
+                    'category'        => 'event',
+                    'action'          => 'WifiConnected',
+                ),
+            ];
+            // $weObj->text(variable_get("wechat_follow_message_".$account->uid, '您好，欢迎来到我家！[握手]'));
+            break;
+        case 'MASSSENDJOBFINISH':
+            $resources = [
+                'keyword' => '_MASSSENDJOBFINISH',
+                'type'    => 'ga',
+                'ga_data'   =>  array(
+                    'category'        => 'event',
+                    'action'          => '图文发送成功',
+                ),
+            ];
+            break;
+        case 'TEMPLATESENDJOBFINISH':
+            $resources = [
+                'keyword' => '_TEMPLATESENDJOBFINISH',
+                'type'    => 'ga',
+                'ga_data'   =>  array(
+                    'category'        => 'event',
+                    'action'          => '模板通知发送成功',
+                ),
+            ];
+            break;
+        default:
+            \Drupal::logger('untrackEvent')->notice('<pre>'.print_r($event, 1));
+            break;
+    }
+    return $resources;
+}
+
+/**
+ * hook_wxresources_default_alter
+ * TODO:: ONLY use in this File!
+ */
+function wechat_api_wxresources_default_alter(Wechat $weObj)
+{
+    $config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $weObj->uid);
+
+    $resources = [
+        'keyword' => 'default_message_text',// $weObj->getRevContent();
+        'type'    => 'text',
+        'obj'     => array(
+            'text' => "暂无任何设置! 请管理员到后台进行设置! 永不止息，需要有你！[强]",
+        ),
+        'ga_data' => array(
+            'category' => 'wxresources_default',
+            'action'   => 'default_message_text',
+        )
+    ];
+    if (isset($config['default_reply_type']))
+        switch ($config['default_reply_type']) {
+            case 'text':
+                $resources = [
+                    'keyword' => 'default_message_text',// $weObj->getRevContent();
+                    'type'    => 'text',
+                    'obj'     => [
+                        'text' => $config['default_message_text'] ?: "永不止息，需要有你！[强]",
+                    ],
+                    'ga_data' => array(
+                        'category' => 'wxresources_default',
+                        'action'   => 'default_message_text',
+                    )
+                ];
+                break;
+            case 'news':
+                //TODO:: replay contents nodes
+                $resources = _default_news($config,43462);//$weObj->uid
+                break;
+            case 'keyword':
+                $keyword = $config['default_message_keyword'];
+                $resources = \Drupal::moduleHandler()->invokeAll('wxresources_alter', array($keyword, $weObj));
+                break;
+            default:
+                //others default response type! TODO::客服关键词回复文字内容
+                break;
+        }
+
+    return $resources;
+}
+function _default_news($config,$uid=0){
+    $news_reply_count = isset($config['news_reply_count'])?$config['news_reply_count']:'1:1:1';
+    $counts = explode(':', $news_reply_count );
+    $news = [];
+    //1 get latest count[0] news
+    // @see tools_wxapi_get_nid($fields,$bundle='grace',$count=1,$uid=0)
+    $query_fields=[
+     'status'=>1,
+     'sticky'=>0
+    ];
+    if($uid) {
+        $nids = tools_wxapi_get_nids($query_fields,'article',$counts[0],$uid);
+    }else{
+        $nids = tools_wxapi_get_nids($query_fields,'article',$counts[0]);
+    }
+    $news = array_merge(array_values($news), array_values(tools_wechat_api_get_news($nids))); 
+    //2.置顶文章count[1]个
+    $query_fields=[
+     'status'=>1,
+     'sticky'=>1
+    ];
+    if($uid) {
+        $nids = tools_wxapi_get_nids($query_fields,'article',$counts[1],$uid);
+    }else{
+        $nids = tools_wxapi_get_nids($query_fields,'article',$counts[1]);
+    }
+    $news = array_merge(array_values($news), array_values(tools_wechat_api_get_news($nids))); 
+
+    //显示底部！
+    if($counts[2]!=0){
+      $img = array(
+        'Title'=>isset($config['copyright_header'])&&strlen($config['copyright_header'])!=0?$config['copyright_header']:'技术支持：主内公众云 https://api.yongbuzhixi.com',
+        'Description'=>'',
+        'PicUrl'=>'',
+        'Url'=> isset($config['config_focus_url'])&&strlen($config['config_focus_url'])!=0?$config['config_focus_url']:'https://api.yongbuzhixi.com'
+      );
+      $news[] = $img;
+    }
+
+    return ['type'=>'news','obj'=>$news];
+}
+/**
+ * @param $user_info
+ * @param string $role
+ *
+ * @return bool|\Drupal\user\Entity\User
+ * wechat_user_add new user when response.
+ * depend on profile: wechat_user_data
+ * depend on role: wechat_user
+ */
+function wechat_api_save_account($user_info,$role='wechat_user')
+{
+    if(isset($user_info['subscribe']) && $user_info['subscribe']==0){ return false; }//用户退订！
+    if(!(isset($user_info['nickname']) && !empty($user_info['nickname']))) {
+        \Drupal::logger('wechat_api_save_account')->warning('No nickname to save account.');
+        \Drupal::logger(__FUNCTION__)->warning('<pre>'.print_r($user_info,1));
+        return false;
+    }
+    //add user & update profile.
+    // $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+    /* @var $user  \Drupal\user\Entity\User */
+    $user = \Drupal\user\Entity\User::create();
+
+    // Mandatory.
+    $name = $user_info['openid'];
+    $mail = $name . '@' . $role;
+    $user->setPassword(time());
+    $user->enforceIsNew();
+    $user->setEmail($mail);
+    $user->setUsername($name);
+//	$user->setData($user_info);
+
+    // Optional.
+    $user->set('init', $mail);
+    // $user->set('langcode', $language);
+//	$user->set('preferred_langcode', $language);
+//	$user->set('preferred_admin_langcode', $language);
+//	$user->set('setting_name', 'setting_value');
+    $user->addRole($role);//TODO::depend
+//	$refs = [
+//		['target_id'=>$field_user_wechat_account_ref_uid],
+////		['target_id'=>10]
+//	];
+//	$user->set('field_user_wechat_account_ref', $refs);
+
+    $openids = [
+        ['value' => $name],
+    ];
+    $user->set('field_user_openids', $openids);
+    $user->set('field_user_picture_url', $user_info['headimgurl']);
+    // $user->save();
+	// set('roles', array_unique($roles));
+    $user->activate();
+
+    // Save user account.
+    $user->save();
+    wechat_api_save_profile($user, $user_info);
+//    \Drupal::logger(__FUNCTION__)->notice($user->id() . ': ' . $user->getUsername());
+    return $user;
+}
+
+/**
+ * @param $user
+ * @param $user_info
+ * @return int $profile_id
+ * Save or Update!!!
+ */
+function wechat_api_save_profile($user, $user_info)
+{
+
+//	ksm($profile);
+//	$active_profile = $this->entityTypeManager()->getStorage('profile')
+//		->loadByUser($user, $profile_type->id());
+//		$user_info = [
+//			'subscribe' => 1,
+//			'openid' => 'o2VsiwQgPqqaRBPUVFsmpq1fNqsc',
+//			'nickname' => '小永',
+//			'sex' => 1,
+//			'language' => 'zh_CN2',
+//			'city' => '东城',
+//			'province' => '北京',
+//			'country' => '中国',
+//			'headimgurl' => 'http://wx.qlogo.cn/mmopen/50HcP4UOeLWI7mH6BLL0RQNBBJNclX738qVZ1b9CIRGK8eBKzV5RghHRq2vWekUt6EiaPLq9lSlHibWLEmt7nLl2tIZS4iabwtN/0'
+//			,'subscribe_time' => 1458890670,
+//			'remark' => 0,
+//			'groupid' => 0,
+//			'tagid_list' => '',
+//		];
+    $profile_type = 'wechat_user_data';
+    /* @var $profile Profile */
+    $profile = \Drupal::entityTypeManager()->getStorage('profile')
+        ->loadByUser($user, $profile_type);
+    $dosave = TRUE;
+    if (!$profile) {
+        $profile = Profile::create([//\Drupal\profile\Entity\Profile::create
+            'uid'  => $user->id(),
+            'type' => $profile_type
+        ]);
+    }elseif($profile->get('field_wxuser_headimgurl')->value==$user_info['headimgurl']){
+        //if image url changed, then update!
+        $dosave = FALSE;
+        // \Drupal::logger(__FUNCTION__)->notice('not update!');
+    }
+    foreach ($user_info as $field_key => $value) {
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                //TODO::here only get the first vlaue!
+                $profile->set('field_wxuser_' . $field_key, $item);
+            }
+        } else {
+            $profile->set('field_wxuser_' . $field_key, $value);
+        }
+    }
+    if($dosave) $profile->save();
+    // \Drupal::logger(__FUNCTION__)->notice($user->id() . ': ' . $user->getUsername());
+    return $profile->id();
+}
+
+/**
+ * Implements hook_entity_insert().
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ * 1.创建一个mp账户时,对应自动创建一个留言板term! Wechat comments
+ * 3.Wechat menus 对应自动创建一个menu for 认证的账户!
+ */
+function wechat_api_entity_insert(Drupal\Core\Entity\EntityInterface $entity)
+{
+    $entity_type = $entity->getEntityTypeId();
+    if ($entity_type == 'user') {
+        /* @var $entity User */
+        $roles = $entity->getRoles();
+        if (in_array('wechat_account', $roles)) {//公众账户
+            $user_name = $entity->getAccountName();
+            $wechat_comments_taxonomy = 'wechat_comments';
+            $wechat_menus_taxonomy = 'wechat_menus';
+            $term = Term::create([
+                'name'        => $user_name,
+                'vid'         => $wechat_menus_taxonomy,
+                'description' => [
+                    'value'  => '公众号自定义菜单root',
+                    'format' => 'full_html',
+                ],
+            ]);
+            $term->save();
+            $uid = $entity->id();
+            \Drupal::logger(__FUNCTION__)->info('config uid: @label', ['@label' => $uid]);
+            $config = \Drupal::configFactory()->getEditable('wechat_api.settings');
+            $config->set('mpaccount_' . $uid . '.menus_tid', $term->id())->save();
+
+            \Drupal::logger(__FUNCTION__)->info('created wechat menu for user: @label', ['@label' => $user_name]);
+            $term = Term::create([
+                'name'        => $user_name,
+                'vid'         => $wechat_comments_taxonomy,
+                'description' => [
+                    'value'  => '公众号默认留言板',
+                    'format' => 'full_html',
+                ],
+            ]);
+            $term->save();
+            $config->set('mpaccount_' . $uid . '.comments_tid', $term->id())->save();
+            \Drupal::logger(__FUNCTION__)->info('created wechat comments page for user: @label', ['@label' => $user_name]);
+            \Drupal::service('path.alias_storage')->save("/taxonomy/term/" . $term->id(), "/tags/comments/" . $user_name, "und");
+        }
+    }
+}
+
+
+/**
+ * Implements hook_user_view().
+ */
+function wechat_api_user_view(array &$build, UserInterface $account, EntityViewDisplayInterface $display, $view_mode)
+{
+    // Iterate through each bundle and see if it's component exists.
+    foreach (ProfileType::loadMultiple() as $bundle) {
+        $component_key = 'profile_' . $bundle->id();
+        if ($display->getComponent($component_key)) {
+            // dale!UN Embed the view of active profiles for profile type.
+            unset($build[$component_key]);
+        }
+    }//end @see profile_user_view!!
+    // add wechat image to user_picture fields!
+    if ($account->hasRole('wechat_user')) {// && !isset($build['user_picture'])
+        $profile_type = 'wechat_user_data';
+        /* @var $profile Profile */
+        $profile = \Drupal::entityTypeManager()->getStorage('profile')
+            ->loadByUser($account, $profile_type);
+        if(!$profile) return;
+        $headimgurl = $profile->get('field_wxuser_headimgurl')->value;
+        $build['user_picture_wechat'] = [
+            '#type'   => 'item',
+            '#markup' => '<img class="wechat-user-pic" src="' . $headimgurl . '"></img>'
+        ];
+        unset($build['user_picture']);
+    }
+    if ($account->hasRole('wechat_account')) {
+        $profile_type = 'wechat_account_data';
+        /* @var $profile Profile */
+        $profile = \Drupal::entityTypeManager()->getStorage('profile')
+            ->loadByUser($account, $profile_type);
+        if(!$profile) return ;
+        $headimgurl = $profile->get('field_mp_accounts_hd_head_img')->value;
+        $build['user_picture_wechat'] = [
+            '#type'   => 'item',
+            '#markup' => '<img class="wechat-account-pic" src="' . $headimgurl . '"></img>'
+        ];
+        unset($build['user_picture']);
+    }
+
+
+}
+
+//1.get html from link
+//2.create mp account if no
+//3.create node with html info
+function mp_getwxcontent($link, $weObj=NULL)
+{
+//	$link = 'http://mp.weixin.qq.com/s/NjVh2b8woG5Fng5lckJdgw';
+    $link = str_replace('http://', 'https://', $link);
+    $arrContextOptions = array(
+        "ssl" => array(
+            "verify_peer"      => false,
+            "verify_peer_name" => false,
+        ),
+    );
+    $ori_html = file_get_contents($link, false, stream_context_create($arrContextOptions));
+    $html = str_get_html($ori_html);
+//	$html = file_get_html($link);
+    $ori_title = $html->find('title', 0)->plaintext;
+
+    preg_match('/var user_name = "(\S+)"/', $ori_html, $matchs);
+    if (!isset($matchs[1])) {
+        $resources = [
+            'keyword' => '_error',
+            'type'    => 'text',//kf_create_session //news //music
+            'expire'  => REQUEST_TIME - 43200,//expires soon.
+            'obj'     => ['text' => "啊喔，出错了，请再试一次[强]"]
+        ];
+        return $resources;
+    }
+    $gh_id = $matchs[1];//gh_01f807be5d1b
+    preg_match('/var nickname = "(.+)"/', $ori_html, $matchs);
+    $name = $matchs[1];//生活无国界
+
+    $user = user_load_by_name($name);
+    if (!$user) {
+        //add user & update profile.
+        // $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+        /* @var $user  \Drupal\user\Entity\User */
+        $user = \Drupal\user\Entity\User::create();
+        // Mandatory.
+        $mail = $name . '@mpaccount';
+        $user->setPassword(time());
+        $user->enforceIsNew();
+        $user->setEmail($mail);
+        $user->setUsername($name);
+        // Optional.
+        $user->set('init', $mail);
+        // $user->set('langcode', $language);
+        $user->addRole('wechat_account');
+        $user->activate();
+        // Save user account.
+        // $user->save();
+        //		\Drupal::logger('create mp account user')->notice($user->id() . ': ' . $user->getUsername());
+        // $html = file_get_contents($html);
+        // preg_match('/var fakeid   = "(\S+)"/',  $ori_html , $matchs);
+        // preg_match('/var appuin = "(\S+)"/', $ori_html, $matchs);
+        // $fakeid = $matchs[1];//MTYyMjI5NjYwMA==
+        // $fakeid = str_replace('"||"', '', $fakeid);
+
+        preg_match('/var appuin = ""\|\|"(.+)"/', $ori_html, $matchs);
+
+        if(!isset($matchs[1])){
+            preg_match('/var appuin = "([^"]+)"/', $ori_html, $matchs);
+        }
+        $appuin = $matchs[1];
+
+        preg_match('/ori_head_img_url = "(.+)"/', $ori_html, $matchs);
+        $ori_head_img_url = $matchs[1];//http://wx.qlogo.cn/mmhead/Q3auHgzwzM61GZDBsZt7uZVk3iacQ5YUsWS2hTrSXs0Vul6NYU3Hh3A/0
+        $ori_head_img_url = str_replace('http://', 'https://', $ori_head_img_url);
+        $user->set('field_user_picture_url', $ori_head_img_url);
+        $user->save();
+        
+        preg_match('/msg_link = "(.+)"/', $ori_html, $matchs);
+        $msg_link = str_replace('\x26amp;','&',$matchs[1]);
+        $qr_link =  str_replace('s?','mp/qrcode?scene=10000005&size=102&',$msg_link);
+        $qr_link = str_replace('http://', 'https://', $qr_link);
+        // $field_mp_accounts_qrcode = 'https://mp.weixin.qq.com/mp/qrcode?scene=10000005&size=502&__biz=' . $fakeid;//https://mp.weixin.qq.com/mp/qrcode?scene=10000004&size=102&__biz=MjM5MTA4MzQ0MA==
+        $wxid = $html->find('.profile_meta_value', 0)->plaintext;//shenghuowuguojie
+        $intro = $html->find('.profile_meta_value', -1)->plaintext;
+        //小心，听了会上瘾！
+        $profile_type = 'wechat_account_data';
+        $profile = Profile::create([
+            'uid'                           => $user->id(),
+            'type'                          => $profile_type,
+            'field_mp_accounts_fakeid'      => $appuin,
+            'field_mp_accounts_ghid'        => $gh_id,
+            'field_mp_accounts_hd_head_img' => $ori_head_img_url,
+            'field_mp_accounts_qrcode'      => $qr_link,
+            'field_mp_accounts_id'          => trim($wxid),
+            'field_mp_accounts_intro'       => trim($intro),
+        ]);
+        $profile->save();
+        \Drupal::logger('create mp account and profile')->notice($user->id() . ': ' . $user->getUsername());
+    }
+
+    $search = array('&nbsp;');
+    $replace = array(' ');
+    $ori_title = str_replace($search, $replace, $ori_title);
+    $title = str_replace('&quot;', '"', $ori_title);
+//	get recently article ori title to check!
+    if ($entity_id = _check_if_article_exsits($title)) {
+        $resources = [
+            'keyword' => '_already_exsits',
+            'type'    => 'text',//kf_create_session //news //music
+            'expire'  => REQUEST_TIME - 43200,//expires soon.
+            //REQUEST_TIME + 43200,//expires later+43200.
+//			TODO:: {{ path('entity.user.canonical', {'user': user.id}) }}
+            'obj'     => ['text' => "啊喔，本文章已发布过！谢谢！[握手]\nhttp://api.yongbuzhixi.com/node/$entity_id"]
+        ];
+        if(strpos($ori_title, '恩典365')!==FALSE){
+            $node = Node::load($entity_id);
+            $node->field_tags = [369];//恩典365
+            $node->field_article_wechat_term = [240];//恩典365基督之家 
+            $node->save();
+            $resources = [
+                'keyword' => '_update_node',
+                'type'    => 'text',
+                'expire'  => REQUEST_TIME - 1,
+                'obj'     => ['text' => $node->getTitle() . "更新成功！谢谢！[握手]https://api.yongbuzhixi.com/node/$entity_id"]
+            ];
+        }
+        return $resources;
+    }
+
+    preg_match('/\?vid=\S[^"|^&|^+]+/', $ori_html, $matchs);//?vid=s0354348eo8
+    if (isset($matchs[0])) {
+        $video_url = str_replace('?vid=', '', $matchs[0]);
+        $video_url = str_replace('http://', 'https://', $video_url);
+    }
+
+    if ($html->find('mpvoice', 0)) {
+        $voice_url = 'http://res.wx.qq.com/voice/getvoice?mediaid=' . $html->find('mpvoice', 0)->voice_encode_fileid;
+        $voice_url = str_replace('http://', 'https://', $voice_url);
+    }
+
+    $body = $html->find('#js_content', 0)->outertext;
+    $body = strip_tags($body, '<span><p><ul><li><ol><br><section><img><iframe><a>');
+    $body = preg_replace('/style="(.*?)"/', '', $body);
+    $body = preg_replace('/class="(.*?)"/', '', $body);
+    $body = preg_replace('/label="(.*?)"/', '', $body);
+    $body = preg_replace('/data-id="(.*?)"/', '', $body);
+    $body = str_replace('<p>&nbsp;</p>', '', $body);
+    // $body = str_replace('data-src', 'src', $body);
+    $body = str_replace('<section>&nbsp;</section>', '', $body);
+    $body = str_replace('<section></section>', '', $body);
+    $body = str_replace('<section><section></section></section>', '', $body);
+    $body = str_replace('<p><br /></p>', '', $body);
+    $body = str_replace('&nbsp;', '', $body);
+
+    preg_match('/var msg_desc = "(\S+)"/', $ori_html, $matchs);
+    $summary = '';
+    if (isset($matchs[1]))
+        $summary = $matchs[1];
+
+//	if(strpos($body, 'MUSTARD SEED')!==FALSE){
+//		$begin = 0;
+//		$end = strpos($body, 'MUSTARD SEED');;
+//		$body = substr($body,$begin,$end-$begin);
+//	}
+    $field_user_name = $html->find('#post-user', 0)->plaintext;
+//	$node->field_sourcex[LANGUAGE_NONE][0]['value'] = $field_user_name;//文章来源
+    preg_match('/var ct = "(\S+)"/', $ori_html, $matchs);
+    $created = $matchs[1];
+    // $created=$ct+8*3600;
+
+    $_tmp_array = [
+        'type'    => 'article',
+        'created' => $created,
+        'uid'     => $user->id(),
+        'title'   => $title,
+        // An array with taxonomy terms.
+//          'field_tags' =>[2],
+//      'field_lymeta_tid' =>[$tid],
+        'body'    => [
+            'summary' => $summary,
+            'value'   => $body,
+            'format'  => 'full_html',
+        ],
+    ];
+    if(strpos($ori_title, '恩典365')!==FALSE){
+        // $ori_title = '20170925《恩典365》恩典：承认人生是神掌权';
+        preg_match('/\d{8}/', $ori_title, $matchs);
+        $date = $matchs[0];
+        $time_str = substr($date, 0,4).'-'.substr($date, 4,2).'-'.substr($date, 6,2)." 00:00:00";
+        $created = strtotime($time_str);
+        $fields = ['status'=>1,'created'=>$created,'field_tags'=>369];//'uid'=>46,
+        $nid = tools_wxapi_get_nid($fields,'article');
+        if($nid){
+            $node = Node::load($nid);
+            $node->field_article_audio->value = $voice_url;
+            $node->save();
+            $resources = [
+                'keyword' => '_publish_node',
+                'type'    => 'text',//kf_create_session //news //music
+                'expire'  => REQUEST_TIME - 1,//expires soon.
+                //REQUEST_TIME + 43200,//expires later+43200.
+                'obj'     => ['text' => $node->getTitle() . "发布成功！谢谢！[握手]https://api.yongbuzhixi.com/node/$nid"]
+            ];
+            return $resources;
+        }else{
+            $resources = [
+                'keyword' => '_publish_node',
+                'type'    => 'text',//kf_create_session //news //music
+                'expire'  => REQUEST_TIME - 1,//expires soon.
+                //REQUEST_TIME + 43200,//expires later+43200.
+                'obj'     => ['text' => $node->getTitle() . "发布成功！谢谢！[握手]"]
+            ];
+            return $resources;
+        }
+	}
+    if(strpos($ori_title, '曼曼成长')!==FALSE){
+        $_tmp_array['field_tags'] = [533];
+        //https://api.yongbuzhixi.com/taxonomy/term/533 曼曼成长记
+        $_tmp_array['field_article_wechat_term'] = [513];
+        //https://api.yongbuzhixi.com/taxonomy/term/513 高广方正面管教
+    }
+
+    $copyright = 0;
+    $author=trim($html->find('.rich_media_meta_text', 1)->plaintext);
+    if($cphtml=$html->find('#copyright_logo', 0)){
+        if(trim($cphtml->plaintext) == '原创') {
+            $copyright = 1;
+        }
+    }
+    if($copyright) $_tmp_array['promote']=1;
+    $node = Node::create($_tmp_array);
+    // echo $date_gmt;
+    if($author==$field_user_name) $author='';
+    preg_match('/var msg_cdn_url = "(\S+)"/', $ori_html, $matchs);
+    $head_img_url = $matchs[1];
+    $head_img_url = str_replace('http://', 'https://', $head_img_url);
+    $node->set('field_image_url', $head_img_url);//原文标题
+
+    /* @var  $weObj Wechat */
+    $node->set('field_aticle_title', $ori_title);//原文标题
+    $node->set('field_article_link', substr($link, 0, 254));//原文链接 TODO: $weObj->getShortUrl($link)
+    $node->set('field_article_author', $field_user_name);//原文作者
+    if($weObj)
+        $node->set('field_article_wxuid', $weObj->getWxUid());//微信收集者	收集义工ID
+//	$node->set('field_article_wechat_term', );//关联公众号文章分类 关联term id!
+
+    if (isset($voice_url))
+        $node->set('field_article_audio', $voice_url);
+    if (isset($video_url))
+        $node->set('field_article_video', $video_url);
+    if (isset($tid))
+        $node->field_term[LANGUAGE_NONE][0]['tid'] = $tid;
+    $node->save();
+    \Drupal::logger('wxcollectnode')->notice($node->id() . ': ' . $title);
+    $url = $node->toUrl('canonical', array('absolute' => true))->toString();
+    $resources = [
+        'keyword' => '_publish_node',
+        'type'    => 'text',//kf_create_session //news //music
+        'expire'  => REQUEST_TIME - 1,//expires soon.
+        //REQUEST_TIME + 43200,//expires later+43200.
+        'obj'     => ['text' => $title . "发布成功！谢谢！[握手]\n $url"]
+    ];
+    return $resources;
+}
+
+/**
+ * @see wechat_api_user_view
+ * @see hook_user_format_name_alter
+ * @see template_preprocess_comment()
+ */
+function wechat_api_user_format_name_alter(&$name, $account)
+{
+    $user_roles = $account->getRoles();
+    if ($account->id() && in_array('wechat_user', $user_roles)) {
+        $profile_type = 'wechat_user_data';
+        /* @var $profile Profile */
+        $profile = \Drupal::entityTypeManager()->getStorage('profile')
+            ->loadByUser($account, $profile_type);
+        if ($profile)
+            $name = $profile->get('field_wxuser_nickname')->value;
+    }
+}

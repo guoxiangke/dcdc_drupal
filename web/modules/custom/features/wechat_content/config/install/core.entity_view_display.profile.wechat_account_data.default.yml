@@ -1,0 +1,66 @@
+langcode: zh-hans
+status: true
+dependencies:
+  config:
+    - field.field.profile.wechat_account_data.field_mp_accounts_fakeid
+    - field.field.profile.wechat_account_data.field_mp_accounts_ghid
+    - field.field.profile.wechat_account_data.field_mp_accounts_hd_head_img
+    - field.field.profile.wechat_account_data.field_mp_accounts_id
+    - field.field.profile.wechat_account_data.field_mp_accounts_intro
+    - field.field.profile.wechat_account_data.field_mp_accounts_qrcode
+    - profile.type.wechat_account_data
+id: profile.wechat_account_data.default
+targetEntityType: profile
+bundle: wechat_account_data
+mode: default
+content:
+  field_mp_accounts_fakeid:
+    weight: 1
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+  field_mp_accounts_ghid:
+    weight: 0
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+  field_mp_accounts_hd_head_img:
+    weight: 2
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+  field_mp_accounts_id:
+    weight: 3
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+  field_mp_accounts_intro:
+    weight: 4
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+  field_mp_accounts_qrcode:
+    weight: 5
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+    region: content
+hidden:
+  langcode: true

@@ -1,0 +1,8 @@
+name: WxResource BBN
+description: '圣经广播网节目'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - wechat_api

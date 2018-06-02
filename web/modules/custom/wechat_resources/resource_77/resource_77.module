@@ -1,0 +1,119 @@
+<?php
+/**
+ * @param $keyword
+ * @param Wechat|NULL $weObj
+ * @return array
+ */
+use Drupal\node\Entity\Node;
+use Drupal\Component\Utility\Unicode;
+use Drupal\wechat_api\Plugin\Wechat\Wechat;
+use Drupal\node\NodeInterface;
+
+/**
+ * hook_rescources_info
+ */
+function resource_77_rescources_info(){
+    $rescources[] = array(
+        'name' => '77',
+        'desc' => '自建音频资源【770】',
+    );
+    $rescources[] = array(
+        'name' => '77_share',
+        'desc' => '接入共享音频资源【770】',
+    );
+    return $rescources;
+}
+
+function resource_77_wxresources_alter($keyword, Wechat $weObj = NULL) {
+    if (!$weObj) return [];
+    $wechat_config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $weObj->uid);
+    $wechat_resources = $wechat_config['wechat_resources'];
+    $appname = "公众号:" . $wechat_config['appname'];
+    //IF enable 77
+    if (!in_array('77', $wechat_resources)) return [];
+
+    $check_word = substr($keyword, 0, 2);
+    $index = (int)substr($keyword, 2);
+    $fields = [
+     'status'=>NodeInterface::PUBLISHED,  //1
+     'field_tags.entity.name'=>'FM77',
+     // 'field_lymeta_tid.entity.tid'=>$tid
+    ];
+    if ($keyword == 770) {
+        $list_count = 15;
+        $nids = [];
+        //1.get all fm77 nids&&titles of this account!!!or shared!!!
+        if (in_array('77_share', $wechat_resources)){
+            $nids = tools_wxapi_get_nids($fields,'article',-1);
+        }else{
+            $uid = $weObj->uid;
+            $nids = tools_wxapi_get_nids($fields,'article',-1,$uid);
+        }
+        $total = count($nids);
+        $nids = array_slice($nids,0,$list_count);
+        // $nids = array_reverse($nids);
+        $menu = "－－－FM77－－－\n";
+        if(empty($nids)) {
+            $menu .= "暂无添加标签为FM77的文章，请添加后再试\n或勾选☑️接入共享自建音频资源【770】\n";
+        }else{
+            $titles = tools_get_titles($nids);
+            foreach ($nids as $key => $nid) {
+               $menu .= '【77' . ($total - $key) . '】' . $titles[$key] . "\n";
+            }
+        }
+        $menu .= "回复对于编号获取相应音频[强]";
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'text',
+            'expire'  => -1,//-1 never expires.
+            'obj'     => [
+                'text' => $menu,
+            ],
+            'ga_data' => array(
+                'category' => 'menu get',
+                'action'   => '77',
+            ),
+        ];
+        return $resources;
+    }
+    if ($check_word == 77 && $index) {
+        if (in_array('77_share', $wechat_resources)){
+            $nids = tools_wxapi_get_nids($fields,'article',-1);
+        }else{
+            $uid = $weObj->uid;
+            $nids = tools_wxapi_get_nids($fields,'article',-1,$uid);
+        }
+        $index = count($nids)-$index;
+        $nid = $nids[$index];
+        $node = Node::load($nid);
+        $expire = -1;
+        if($node->hasField('field_article_audio') && !$node->field_article_audio->isEmpty()){
+            $musicurl = $node->field_article_audio->value;    
+        }elseif($node->hasField('field_mp3') && !$node->field_mp3->isEmpty()){
+            $fid = $node->field_mp3->getValue()[0]['target_id'];
+            $file = \Drupal\file\Entity\File::load($fid);
+            $musicurl = file_create_url($file->getFileUri());
+            
+            $cdn_enabled = \Drupal::config('cdn.settings')->get('status');
+            if($cdn_enabled) $musicurl = 'https:' . $musicurl;
+        }
+
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'music',
+            'expire'  => $expire,
+            'obj'     => [
+                'title'      => "【".$keyword."】".$node->getTitle(),
+                'desc'       => '点击▶️收听 '.$appname,
+                'musicurl'   => $musicurl,
+                'hgmusicurl' => $musicurl,
+            ],
+            'ga_data' => array(
+                'category' => '77',
+                'action'   => $node->getTitle(),
+            ),
+        ];
+        return $resources;
+    }
+    // 
+}

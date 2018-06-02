@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_wxuser_tagid_list
+    - profile.type.wechat_user_data
+id: profile.wechat_user_data.field_wxuser_tagid_list
+field_name: field_wxuser_tagid_list
+entity_type: profile
+bundle: wechat_user_data
+label: 'wxuser tagid_list'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

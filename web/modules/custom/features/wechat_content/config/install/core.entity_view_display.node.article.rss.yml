@@ -1,0 +1,40 @@
+langcode: zh-hans
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.rss
+    - field.field.node.article.body
+    - field.field.node.article.comment
+    - field.field.node.article.field_article_audio
+    - field.field.node.article.field_article_author
+    - field.field.node.article.field_article_link
+    - field.field.node.article.field_article_video
+    - field.field.node.article.field_article_wechat_term
+    - field.field.node.article.field_article_wxuid
+    - field.field.node.article.field_aticle_title
+    - field.field.node.article.field_image
+    - field.field.node.article.field_tags
+    - node.type.article
+  module:
+    - user
+id: node.article.rss
+targetEntityType: node
+bundle: article
+mode: rss
+content:
+  links:
+    weight: 100
+    region: content
+hidden:
+  body: true
+  comment: true
+  field_article_audio: true
+  field_article_author: true
+  field_article_link: true
+  field_article_video: true
+  field_article_wechat_term: true
+  field_article_wxuid: true
+  field_aticle_title: true
+  field_image: true
+  field_tags: true
+  langcode: true

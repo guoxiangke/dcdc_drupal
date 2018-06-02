@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - comment.type.wechat_comments
+    - field.field.comment.wechat_comments.comment_body
+  module:
+    - text
+id: comment.wechat_comments.default
+targetEntityType: comment
+bundle: wechat_comments
+mode: default
+content:
+  comment_body:
+    label: hidden
+    type: text_default
+    weight: 0
+    settings: {  }
+    third_party_settings: {  }
+  links:
+    weight: 100
+hidden: {  }

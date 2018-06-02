@@ -1,0 +1,8 @@
+name: resource 700 API
+description: 'Provides basic API for 700 resources'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - wechat_api

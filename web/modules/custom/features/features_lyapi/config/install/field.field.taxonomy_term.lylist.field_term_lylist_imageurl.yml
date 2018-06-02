@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.field_term_lylist_imageurl
+    - taxonomy.vocabulary.lylist
+id: taxonomy_term.lylist.field_term_lylist_imageurl
+field_name: field_term_lylist_imageurl
+entity_type: taxonomy_term
+bundle: lylist
+label: 节目封面
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

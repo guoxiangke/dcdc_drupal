@@ -1,0 +1,6 @@
+name: d8 tools
+description: 'Provides basic API for node resources'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x

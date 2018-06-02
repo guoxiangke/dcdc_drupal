@@ -1,0 +1,203 @@
+<?php
+/**
+ * @param $keyword
+ * @param Wechat|NULL $weObj
+ * @return array
+ */
+use Drupal\Component\Utility\Unicode;
+use Drupal\wechat_api\Plugin\Wechat\Wechat;
+
+
+/**
+ * hook_rescources_info
+ */
+function resource_700_rescources_info()
+{
+    $rescources[] = array(
+        'name' => '700',
+        'desc' => '流行电台【700】',
+    );
+    $rescources[] = array(
+        'name' => '700_share',
+        'desc' => '接入共享流行电台【700】',
+    );
+    return $rescources;
+}
+
+function resource_700_wxresources_alter($keyword, Wechat $weObj = NULL)
+{
+    if (!$weObj) return [];
+    $appname = '公众号:永不止息';
+    $wechat_config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $weObj->uid);
+    $wechat_resources = $wechat_config['wechat_resources'];
+    $appname = "公众号:" . $wechat_config['appname'];
+    //IF enable ly_resouce 700
+    if (!in_array('700', $wechat_resources)) return [];
+    if (!isset($wechat_config['resources_700'])) return [];
+
+    $check_word = substr($keyword, 0, 3);
+    $index = (int)substr($keyword, 3);
+    if ($check_word == 700 && !$index) {
+        $resources = explode("\n", $wechat_config['resources_700']);
+        $menu = '';
+        $keys = [];
+        foreach ($resources as $key => $resource) {
+            $keys[] = $key + 1;
+            $link = explode('|', $resource);
+            $links[] = $link[0];
+            $menu .= '【700' . ($key + 1) . '】' . $link[1] . "\n";
+        }
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'text',
+            'expire'  => -1,//-1 never expires.
+            'obj'     => [
+                'text' => $menu,
+            ],
+            'ga_data' => array(
+                'category' => 'menu get',
+                'action'   => '700',
+            ),
+        ];
+        return $resources;
+    }
+    // $index = $index?$index:0;
+    if ($check_word == 700) {//1-33
+        $resources = explode("\n", $wechat_config['resources_700']);
+        $keys = [];
+        foreach ($resources as $key => $resource) {
+            $keys[] = $key + 1;
+            $link = explode('|', $resource);
+            $links[] = $link[0];
+            $titles[] = $link[1];
+            $menus[] = '【700' . ($key + 1) . '】';
+            if (isset($link[2])) {
+                $orders[] = $link[2];
+            } else {
+                $orders[] = 0;
+            }
+        }
+
+        if (isset($links[$index - 1])) {
+            $link = $links[$index - 1];//http://www.ximalaya.com/10586605/album/259292
+            $title = $titles[$index - 1];
+            $field_order = $orders[$index - 1];
+            $menu = $menus[$index - 1];
+        }
+        if ($link && strpos($link, 'ximalaya') !== FALSE) {
+            $html = file_get_contents($link);//'http://www.ximalaya.com/22873240/album/348894'
+            preg_match('/sound_ids=".+/', $html, $matches);
+            $html = $matches[0];
+            $html = str_replace('sound_ids="', '', $html);
+            $html = str_replace('">', '', $html);
+            $sound_ids = explode(',', $html);
+
+
+            $index = date('z') % count($sound_ids);
+            $offset = 0;
+            $offsets = explode('+', $keyword);
+            if (isset($offsets['1'])) {
+                if (is_numeric($offsets['1']))
+                    $offset = $offsets['1'];
+            }
+            if ($offset) {
+                $index = $offset - 1;
+                if ($field_order == 1) {
+                    $index = count($sound_ids) - $offset;
+                }//倒序排列的节目！
+            } else {
+                $index = date('z') % count($sound_ids);
+            }
+
+
+            $sound_id = trim($sound_ids[$index]);
+
+            if (!$sound_id) {
+                return [
+                    'keyword' => $keyword,
+                    'type'    => 'text',
+                    'expire'  => -1,//-1 never expires.
+                    'obj'     => [
+                        'text' => "啊呜，出错啦！没有那么多集啊，亲！",
+                    ],
+                    'ga_data' => array(
+                        'category' => 'menu get',
+                        'action'   => '500',
+                    ),
+                ];
+            }
+            $json = file_get_contents('http://www.ximalaya.com/tracks/' . $sound_id . '.json');
+            $json = json_decode($json);
+            $desc = $appname . ' ' . $json->title.' '.'每日更新';//' 下一集请回复'.$offsets['0'].'+'.($offset+1);
+//			if ($field_order == '0'){//默认正序，即从第一集开始到最后一集，如果是倒序，请勾选！
+//				$desc = '第'.$index.'集 公众号:'.$appname.' 每日更新';
+//				// $index = 0;//已经更新完成的节目！每次都是获得第一个！
+//			}
+            $resources = [
+                'keyword' => $keyword,
+                'type'    => 'music',
+                'expire'  => REQUEST_TIME + 43200,//-1 never expires.
+                'obj'     => [
+                    'title'      => $menu . $title,
+                    'desc'       => $desc,
+                    'musicurl'   => $json->play_path_32,
+                    'hgmusicurl' => $json->play_path_64,
+                ],
+                'ga_data' => array(
+                    'category' => '700',
+                    'action'   => $title,
+                ),
+            ];
+            if (isset($json->title))
+                $resources['custommessage'] = $menu . $title . "\n" . $json->title;
+            if (isset($json->intro))
+                $resources['custommessage'] .= "\n" . Unicode::truncate($json->intro, '350', TRUE, TRUE);
+        }
+
+        //70034  http://www.lizhi.fm/43136/ TODO:custommessage
+        if ($link && strpos($link, 'lizhi') !== FALSE) {
+            $path = str_replace('www.lizhi.fm/', '', $link);
+            $path = str_replace('https://', '', $path);
+            $id = str_replace('http://', '', $path);
+            $link = 'http://www.lizhi.fm/api/radio_audios?band=' . $id . '&s=1&l=365';
+            $sound_ids = json_decode(curl_request($link));
+
+            if ($field_order == '1')//倒序排列的节目！
+                $sound_ids = array_reverse($sound_ids);
+//			$sound_ids = array_reverse($jsons);
+            $index = (date('z')) % count($sound_ids);
+//			if (date('i') > 30) {
+//				$index++;
+//			}
+            $offset = 0;
+            $offsets = explode('+', $keyword);
+            if (isset($offsets['1'])) {
+                if (is_numeric($offsets['1']))
+                    $offset = $offsets['1'];
+            }
+            if ($offset)
+                $index = $offset % count($sound_ids) - 1;
+
+            $json = $sound_ids[$index];
+            $desc = $appname . ' 更多节目请回复【700】';
+
+            $resources = [
+                'keyword' => $keyword,
+                'type'    => 'music',
+                'expire'  => REQUEST_TIME + 43200,//-1 never expires.
+                'obj'     => [
+                    'title'      => $menu . $json->name . '♫',
+                    'desc'       => $desc,
+                    'musicurl'   => $json->fixedLowPlayUrl,
+                    'hgmusicurl' => $json->url,
+                ],
+                'ga_data' => array(
+                    'category' => '700',
+                    'action'   => $title,
+                ),
+            ];
+        }
+
+        return $resources;
+    }
+}

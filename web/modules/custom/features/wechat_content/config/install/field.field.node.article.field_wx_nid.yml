@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_wx_nid
+    - node.type.article
+id: node.article.field_wx_nid
+field_name: field_wx_nid
+entity_type: node
+bundle: article
+label: 'old wx nid'
+description: 迁移旧系统之用，以后删除
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 1
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

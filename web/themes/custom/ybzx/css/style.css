@@ -1,0 +1,284 @@
+/**
+ * Place your custom styles here.
+ */
+a {
+    color: #555;
+}
+a:hover,
+a:focus {
+    color: black;
+    text-decoration: underline
+}
+.field--name-body a{
+	text-decoration: underline;
+}
+body {
+	margin: 0;
+	font-family: Georgia,"Times New Roman",Times,"Microsoft YaHei", "Microsoft JhengHei","STHeiti", Arial, Helvetica, sans-serif;
+	font-size: 16px;
+	line-height: 2em;
+	color: #555555;
+	background-color: white;
+}
+h1,.h1{
+	font-size: 24px;
+}
+h2,.h2{
+	font-size: 20px;
+}
+h3,.h3{
+	font-size: 18px;
+}
+h4,.h4{
+	font-size: 16px;
+}
+h5,.h5{
+	font-size: 14px;
+}
+p{
+	/*margin-bottom: 20px;*/
+	text-align: justify;
+}
+.field--name-comment-body{
+	text-align: justify;
+}
+
+.region-content{
+	padding-bottom: 50px;
+}
+/*logo*/
+.navbar-header .region-navigation{
+  line-height: 50px;
+}
+a.logo img{
+	vertical-align: middle;
+	display: inline-block;
+	max-height: 32px;
+}
+a.navbar-btn{
+	margin-bottom: 0; 
+}
+.navbar .logo{
+	padding-right: 5px;
+}
+/*moile menu*/
+ul.menu.navbar-nav li{
+	border-bottom: 1px dotted #ddd;
+}
+ul.menu.navbar-nav li:last-child{
+	border-bottom: none;
+}
+/*h1*/
+h1.page-header {
+    font-family: Georgia,"Times New Roman",Times,"Kai","Kaiti SC","KaiTi","BiauKai","楷体","楷体_GB2312",serif;
+}
+.select-wrapper .shs-container select,
+.input-sm{
+	height: 30px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+.select-wrapper,.shs-container{
+	width: auto;
+}
+.shs-widget-container {
+	margin-right: 6px;
+}
+/*http://api.localhost/taxonomy/term/354*/
+.wechat_comments-indent{
+	padding-left: 0;
+	list-style: none;
+}
+.wechat_comments-indent>li{
+	font-weight: bolder;
+	padding-top: 10px;
+}
+.wechat_comments-indent>li>ul>li{
+	font-weight: normal;
+	padding-top: 0px;
+}
+.wcn-indent-p .wechat_comments-indent{
+	padding-left: 1.5em;
+}
+.wcn-indent-p .wechat_comments-indent li{
+	padding: 15px 0; 
+	border-bottom:1px solid #f0f0f0;
+  color:#888888;
+}
+
+.data-open::after {
+		margin-left: 3px;
+    content: "▶";
+    font-size: 12px;
+}
+.data-close::after {
+	  margin-left: 3px;
+    content: "▼";
+    font-size: 12px;
+    color: rgb(0, 0, 0);
+}
+.sub-articles{
+	display: none;
+}
+.sub-articles p{
+	padding-left: 1em;
+}
+.wcn-indent-p .wechat_comments-indent ol li {
+    padding: 5px 0;
+    border-bottom: 1px dotted #f0f0f0;
+    color: #888888;
+}
+
+.field--type-text-long img{
+	width: 100%;
+}
+
+.flex-row{
+  display: flex;
+  flex-direction: row;
+}
+.flex-column{
+  display: flex;
+  flex-direction: column;
+}
+.flex-space-between{
+  justify-content: space-between;
+}
+.flex-row.flex-center{
+  justify-content: center;
+}
+.flex-row.justity-start{
+  justify-content: flex-start;
+}
+
+
+
+/*comments*/
+.comment-form .field--name-subject, 
+.comment-form .field--name-comment-body label {
+    display: none;
+}
+ul.links>li.comment-forbidden{
+	display: none;
+}
+#edit-preview{
+	display: none;
+}
+#edit-comment-body-0-format {
+    display: none;
+}
+.comment-wrapper  h2.title{
+	display: none;
+}
+.ybzx-comments-main{
+	margin-top: 30px;
+}
+.js-comment h3,
+.indented .comment__time,
+.indented .comment-reply,
+.comment-forbidden{
+	display: none;
+}
+.js-comment img{
+	max-width: 40px;
+	overflow: hidden;
+	border-radius: 50%;
+}
+.indented .js-comment img{
+	max-width: 30px;
+	border-radius: 0;
+}
+.indented{
+	margin-left: 50px;
+}
+.comment__author a{
+	text-decoration: none;
+	color: #000;
+}
+
+.ybzx-comment{
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+}
+.ybzx-c-body{
+	margin-left: 15px;
+}
+.ybzx-c-body p{
+	margin: 0;
+}
+.ybzx-comment .comment__time,
+.ybzx-comment .links{
+	color: #999ca0;
+	font-size: 12px;
+}
+.ybzx-comment .links{
+	color: #000;
+}
+
+
+/* /mpaccounts */
+.view-mp-accounts img{
+    max-width: 50px;
+}
+
+
+/*mp3 player*/
+.audiofield audio{
+	width: 100%;
+}
+/*tags*/
+.field__items .field--item{
+	font-size: 12px;
+	padding: 0 15px;
+	display: inline-block;
+	border-radius:5px;
+	background-color:#1AAD16;
+}
+.field__items .field--item a{
+	color:#fff;	
+	letter-spacing:2px;
+}
+
+/**/
+.full .ybzx-node-submit {
+	position: fixed;
+  left: 0;
+  bottom: 0;
+  padding: 5px;
+  z-index: 1000;
+	margin-bottom:0;
+	border-left: none;
+	border-bottom: none; 
+	text-align: center;
+	font-size: 12px;
+}
+/* Small devices (tablets, 768px and up) */
+@media screen and (max-width: 768px){
+	.full .ybzx-node-submit {
+  	right: 0;
+	}
+}
+
+.teaser .ybzx-node-submit {
+	display: none;
+}
+.ybzx-node-submit a{
+	text-decoration: underline;
+}
+.ybzx-node-submit .flag a{
+	color: #179ED6;
+	text-decoration: none;
+}
+.wechat-account-pic{
+	max-height: 30px;
+	border-radius: 50%;
+}
+.ybzx-node-author-picture{
+    width: 33%;
+}
+.ybzx-node-author-picture article div{
+	margin-bottom: 0;
+}

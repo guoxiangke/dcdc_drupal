@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.field_term_lylist_lywx
+    - taxonomy.vocabulary.lylist
+id: taxonomy_term.lylist.field_term_lylist_lywx
+field_name: field_term_lylist_lywx
+entity_type: taxonomy_term
+bundle: lylist
+label: 良友微信编号
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

@@ -1,0 +1,72 @@
+langcode: zh-hans
+status: true
+dependencies:
+  config:
+    - field.field.profile.wechat_account_data.field_mp_accounts_fakeid
+    - field.field.profile.wechat_account_data.field_mp_accounts_ghid
+    - field.field.profile.wechat_account_data.field_mp_accounts_hd_head_img
+    - field.field.profile.wechat_account_data.field_mp_accounts_id
+    - field.field.profile.wechat_account_data.field_mp_accounts_intro
+    - field.field.profile.wechat_account_data.field_mp_accounts_qrcode
+    - profile.type.wechat_account_data
+id: profile.wechat_account_data.default
+targetEntityType: profile
+bundle: wechat_account_data
+mode: default
+content:
+  field_mp_accounts_fakeid:
+    weight: 4
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  field_mp_accounts_ghid:
+    weight: 3
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  field_mp_accounts_hd_head_img:
+    weight: 5
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  field_mp_accounts_id:
+    weight: 6
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  field_mp_accounts_intro:
+    weight: 7
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  field_mp_accounts_qrcode:
+    weight: 8
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  langcode:
+    type: language_select
+    weight: 2
+    settings:
+      include_locked: true
+    third_party_settings: {  }
+    region: content
+hidden: {  }

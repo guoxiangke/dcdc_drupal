@@ -1,0 +1,35 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.taxonomy_term.wechat_menus.field_wechat_menu_type
+    - field.field.taxonomy_term.wechat_menus.field_wechat_menu_url
+    - taxonomy.vocabulary.wechat_menus
+  module:
+    - options
+    - text
+id: taxonomy_term.wechat_menus.default
+targetEntityType: taxonomy_term
+bundle: wechat_menus
+mode: default
+content:
+  description:
+    label: hidden
+    type: text_default
+    weight: 0
+    settings: {  }
+    third_party_settings: {  }
+  field_wechat_menu_type:
+    weight: 1
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: list_default
+  field_wechat_menu_url:
+    weight: 2
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+hidden: {  }

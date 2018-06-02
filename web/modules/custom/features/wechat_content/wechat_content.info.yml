@@ -1,0 +1,28 @@
+name: 'Wechat content'
+description: 微信收集文章
+type: module
+core: 8.x
+dependencies:
+  - audiofield
+  - comment
+  - features_wechat_api
+  - field
+  - file
+  - image
+  - language
+  - link
+  - menu_ui
+  - node
+  - options
+  - path
+  - profile
+  - rdf
+  - rest
+  - serialization
+  - shs
+  - statistics
+  - taxonomy
+  - text
+  - user
+  - views
+version: 8.x-1.1

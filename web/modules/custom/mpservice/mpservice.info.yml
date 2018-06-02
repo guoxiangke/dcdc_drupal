@@ -1,0 +1,6 @@
+name: mpservice
+description: 'mpservice'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x

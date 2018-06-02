@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_video_url
+    - node.type.article
+id: node.article.field_video_url
+field_name: field_video_url
+entity_type: node
+bundle: article
+label: 视频URL
+description: 必需是http或https开头的mp4链接
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

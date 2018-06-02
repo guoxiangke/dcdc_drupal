@@ -1,0 +1,14 @@
+name: Lymeta
+description: 'Provides Lymeta content type and related configuration. 每日节目摘要信息'
+type: module
+core: 8.x
+dependencies:
+  - comment
+  - field
+  - menu_ui
+  - node
+  - path
+  - taxonomy
+  - text
+  - user
+  - views

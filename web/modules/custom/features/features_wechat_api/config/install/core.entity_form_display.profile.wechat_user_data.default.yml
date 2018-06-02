@@ -1,0 +1,115 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.profile.wechat_user_data.field_wxuser_city
+    - field.field.profile.wechat_user_data.field_wxuser_country
+    - field.field.profile.wechat_user_data.field_wxuser_groupid
+    - field.field.profile.wechat_user_data.field_wxuser_headimgurl
+    - field.field.profile.wechat_user_data.field_wxuser_language
+    - field.field.profile.wechat_user_data.field_wxuser_nickname
+    - field.field.profile.wechat_user_data.field_wxuser_openid
+    - field.field.profile.wechat_user_data.field_wxuser_province
+    - field.field.profile.wechat_user_data.field_wxuser_remark
+    - field.field.profile.wechat_user_data.field_wxuser_sex
+    - field.field.profile.wechat_user_data.field_wxuser_subscribe
+    - field.field.profile.wechat_user_data.field_wxuser_subscribe_time
+    - field.field.profile.wechat_user_data.field_wxuser_tagid_list
+    - profile.type.wechat_user_data
+id: profile.wechat_user_data.default
+targetEntityType: profile
+bundle: wechat_user_data
+mode: default
+content:
+  field_wxuser_city:
+    weight: 8
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_country:
+    weight: 10
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_groupid:
+    weight: 14
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_headimgurl:
+    weight: 11
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_language:
+    weight: 7
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_nickname:
+    weight: 5
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_openid:
+    weight: 4
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_province:
+    weight: 9
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_remark:
+    weight: 13
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_sex:
+    weight: 6
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_subscribe:
+    weight: 16
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_subscribe_time:
+    weight: 12
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_wxuser_tagid_list:
+    weight: 15
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+hidden: {  }

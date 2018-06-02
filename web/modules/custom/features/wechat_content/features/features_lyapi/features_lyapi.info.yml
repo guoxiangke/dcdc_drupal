@@ -1,0 +1,17 @@
+name: 'Features Lyapi'
+description: '1.views for /api/lylist /api/lylist/category 1Comment type ly_comments 1Content type lymeta'
+type: module
+core: 8.x
+dependencies:
+  - comment
+  - field
+  - menu_ui
+  - node
+  - path
+  - rest
+  - serialization
+  - taxonomy
+  - text
+  - user
+  - views
+version: 8.x-1.0

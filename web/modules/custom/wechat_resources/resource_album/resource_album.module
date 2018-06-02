@@ -1,0 +1,161 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: dale.guo
+ * Date: 12/16/16
+ * Time: 10:14 AM
+ */
+use Drupal\taxonomy\Entity\Term;
+use Drupal\Component\Serialization\Json;
+use Drupal\wechat_api\Plugin\Wechat\Wechat;
+
+
+/**
+ * hook_rescources_info
+ */
+/**
+ * Implements hook_ajax_render_alter().
+ */
+function resource_album_rescources_info(){
+	$rescources[] = array(
+		'name' => '500',
+		'desc' => '会员资源【500】',
+	);
+	return $rescources;
+}
+
+/**
+ * @param $keyword
+ * @param Wechat|NULL $weObj
+ * @return array
+ */
+function resource_album_wxresources_alter($keyword,Wechat $weObj=NULL){
+	$appname = '公众号:永不止息';
+	if($weObj){
+		$wechat_config = \Drupal::config('wechat_api.settings')->get('mpaccount_'.$weObj->uid);
+		$wechat_resources = $wechat_config['wechat_resources'];
+		//IF enable ly_resouce 500
+		if(!in_array('500',$wechat_resources)) return [];
+	}
+
+	//http://audio.yongbuzhixi.com/resources/365/2014/20140109.mp3
+	$cdnlink = 'http://wxresources.yongbuzhixi.com';
+	$check_word = substr($keyword, 0,3);
+	if($check_word==500){
+		$resources = [
+			'keyword' => $keyword,
+			'type' => 'text',
+			'expire' => -1,//-1 never expires.
+			'obj' => [
+				'text' => _get_mp_500_menu(),
+			],
+			'ga_data'   =>  array(
+				'category'        => 'menu get',
+				'action'          => '500',
+			),
+		];
+		return $resources;
+	}
+	$index = (int)substr($keyword, 3);
+	$index = $index?$index:0;
+	$res500 = _get_mp_500_res();
+	if(in_array($check_word,array_keys($res500))) {
+		if(in_array($check_word,array_keys($res500))){
+			if($index==0)
+				$index = date('z')%$res500[$check_word]['count']+1;
+			$title = $res500[$check_word]['title'];
+			if($res500[$check_word]['count']==365){//TODO: 5231225?+3650101>desc
+				$path = '/500/'.$check_word.'/'.date('md').'.mp3';
+			}else{
+				$str_pad = strlen($res500[$check_word]['count']);
+				$path = '/500/'.$check_word.'/'.str_pad($index,$str_pad,"0",STR_PAD_LEFT).'.mp3';
+			}
+			$url = $cdnlink.$path;//.upyun_get_token($path);
+			$desc = "点击▶️收听 ".$appname." 每日更新";
+			$resources = [
+				'keyword' => $keyword,
+				'type' => 'music',
+				'expire' => REQUEST_TIME+43200,//-1 never expires.
+				'upyun_path' =>  $path,
+				'obj' => [
+					'title' => $title.$index.'/'.$res500[$check_word]['count'].'♫',
+					'desc'  =>  $desc,
+					'musicurl'  =>  $url,
+					'hgmusicurl'  =>  $url,
+				],
+				'ga_data'   =>  array(
+					'category'        => '500',
+					'action'          => $title,//.'_'.$index
+				),
+			];
+
+			$index--;
+			if(isset($res500[$check_word]['desc'])){
+				$desc = explode(';',$res500[$check_word]['desc']);
+				$custommessage = $desc[$index];
+			}
+			if(isset($res500[$check_word]['json'])&&$res500[$check_word]['json']==1){
+				// json array('href=mp3link' 'title' 'desc' 'booklink')
+				$json = Json::decode(file_get_contents(drupal_get_path('module', 'resource_album').'/'.$check_word.'.json'));
+				$custommessage = '';
+				$index++;
+				if(isset($json[$index]['title']))
+					$custommessage .=$json[$index]['title']."\n";
+				if(isset($json[$index]['desc']))
+					$custommessage .=$json[$index]['desc']."\n";
+				if(isset($json[$index]['bookpath'])){
+					$custommessage .='<a href="'.$cdnlink.$json[$index]['bookpath'].upyun_get_token($json[$index]['bookpath']).'">讲义讲章</a>'."\n";//TODO:
+				}elseif(isset($json[$index]['booklink'])){
+					$custommessage .='<a href="'.$json[$index]['booklink'].'">讲义讲章</a>'."\n";
+				}
+			}
+			if(isset($custommessage)){
+				$resources['custommessage'] = $title."\n".$custommessage;
+			}
+			return $resources;
+		}
+	}
+
+}
+
+/**
+ * @see get_mp_ltsma()
+ * @return array
+ */
+function _get_mp_500_res(){
+	$cached_resources_lylts = 'wxresources_500_terms';
+	if($cache = \Drupal::cache()->get($cached_resources_lylts)){
+		$lylts_terms = $cache->data;
+	}else{
+		$lylistvname = '500';
+		$field_pre = 'field_term_'.$lylistvname.'_';
+		$container = \Drupal::getContainer();
+		$terms = $container->get('entity.manager')->getStorage('taxonomy_term')->loadTree($lylistvname,0,NULL,TRUE);
+		$fields = ['count'=>'课程数量','json'=>'json元数据(默认0)','url'=>'来源url','desc'=>'描述(用;隔开)'];
+		$lylts_terms = [];
+		if (!empty($terms)) {
+			/* @var $term Term */
+			foreach($terms as $term) {
+				$index =  $term->get($field_pre.'code')->value;//'code'=>'获取代码(without #)101-999'
+				if(!$index) continue;
+				$lylts_terms[$index]['title'] = $term->getName();
+				foreach(array_keys($fields) as $field_key)
+				{
+					$field_name = $field_pre.$field_key ;
+					$lylts_terms[$index][$field_key] = $term->get($field_name)->value;
+				}
+			}
+			\Drupal::cache()->set($cached_resources_lylts, $lylts_terms,-1);
+		};
+	}
+	return $lylts_terms;
+}
+
+function _get_mp_500_menu(){
+	$res500 = _get_mp_500_res();
+	$menu = '';
+	foreach ($res500 as $key => $value) {
+		$menu .=  $value['title']."\n";
+	}
+	return $menu;
+}

@@ -1,0 +1,22 @@
+langcode: zh-hans
+status: true
+dependencies:
+  config:
+    - eck.eck_type.points.point
+    - field.storage.points.field_points
+id: points.point.field_points
+field_name: field_points
+entity_type: points
+bundle: point
+label: points
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

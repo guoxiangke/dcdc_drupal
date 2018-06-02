@@ -1,0 +1,97 @@
+<?php
+use Drupal\wechat_api\Plugin\Wechat\Wechat;
+/**
+ * Created by PhpStorm.
+ * User: dale.guo
+ * Date: 12/22/16
+ * Time: 5:43 PM
+ */
+
+/**
+ * hook_rescources_info
+ */
+function resource_bbn_rescources_info(){
+	$rescources[] = array(
+		'name' => 'bbn',
+		'desc' => '圣经广播网【400】',
+	);
+	return $rescources;
+}
+
+/**
+ * @param $keyword
+ * @param Wechat|NULL $weObj
+ * @return array
+ */
+function resource_bbn_wxresources_alter($keyword,Wechat $weObj=NULL){
+	$appname = '公众号:永不止息';
+	if($weObj){
+		$wechat_config = \Drupal::config('wechat_api.settings')->get('mpaccount_'.$weObj->uid);
+		$wechat_resources = $wechat_config['wechat_resources'];
+		//IF enable ly_resouce 500
+		if(!in_array('bbn',$wechat_resources)) return [];
+	}
+
+	if(is_numeric($keyword) && ($keyword>=400 && $keyword<=435) ) {
+		return mp_bbn_response($keyword,$appname);
+	}
+
+}
+
+
+/**
+ * 
+ */
+function mp_bbn_response($keyword,$appname) {
+	require_once('bbn.inc');
+	if($keyword == '400'){
+		$resources = array(
+			'keyword'      =>  $keyword,
+			'type'	=>	'text',
+			'cache' =>  -1,
+			'obj'		=> array(
+				'text'	=> bbn_audio_menu()
+			)
+		);
+		return $resources;
+	}
+	$item = mp_get_bbn($keyword);
+	if($item){
+		$bucket = 'http://up.yongbuzhixi.com';
+		$bucket_pre = '/tmp/';
+		$upyun_path = $bucket_pre.'bbn/'.date('Y').'/'.$keyword.'/'.date('ymd').'.mp3';
+		$musicurl = $bucket.$upyun_path;
+		$title = '【'.$keyword.'】'.$item['title'];
+		$desc = '点击▶️收听 '.$appname.' 每日更新';
+		$resources= array(
+			'type'	=>	'music',
+			'cache' =>  REQUEST_TIME+43200,
+			'upyun_path' => $upyun_path,
+			'ga_data'   =>  array(
+				'category'        => 'bbn',
+				'action'          => $title,
+			),
+			'obj'		=> array(
+				'title'	=> $title,
+				'desc'	=>	$desc,
+				'musicurl'	=>	$musicurl,
+				'hgmusicurl'	=>	$musicurl,
+			),
+		);
+	}else{
+		$text = "【$keyword 】今日无节目或节目还没有加速，小永努力中，请稍后再试！\n永不止息，需要有你[握手]\n请回复【400】收听其他节目\n微信赞助支持：https://www.yongbuzhixi.com/wxdonate";
+		$resources = array(
+			'keyword'      =>  $keyword,
+			'type'	=>	'text',
+			'ga_data'   =>  array(
+				'category'        => 'bbn',
+				'action'          => "no $keyword yet!",
+			),
+			'cache' =>  REQUEST_TIME-1,
+			'obj'		=> array(
+				'text'	=> $text
+			)
+		);
+	}
+	return $resources;
+}

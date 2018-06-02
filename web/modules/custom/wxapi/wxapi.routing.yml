@@ -1,0 +1,58 @@
+wxapi.getuid:
+  path: '/wxapi/getuid'
+  methods: [POST]
+  defaults:
+    _controller: '\Drupal\wxapi\Controller\WxapiController::getUid'
+    _title: 'get USER'
+  requirements:
+    _access: 'TRUE'
+wxapi.test:
+  path: '/wxapi/getwxpost'
+  methods: [POST]
+  defaults:
+    _controller: '\Drupal\wxapi\Controller\WxapiController::getWxPost'
+    _title: 'POSTtest'
+  requirements:
+    # _permission: 'access content'
+    _access: 'TRUE'
+    # _csrf_token: 'TRUE'
+# wxapi.graceinit:
+#   path: '/cron/grace/video/fuyin'
+#   # methods: [GET, POST, PATCH]
+#   defaults:
+#     _controller: '\Drupal\wxapi\Controller\WxapiController::graceInit'
+#     _title: 'Init Grace contents run one time!'
+#   requirements:
+#     _access: 'TRUE'
+wxapi.graceupdate:
+  path: '/cron/grace/content/tpehoc'
+  # methods: [GET, POST, PATCH]
+  defaults:
+    _controller: '\Drupal\wxapi\Controller\WxapiController::graceUpdate'
+    _title: 'Init Grace contents run one time!'
+  requirements:
+    _access: 'TRUE'
+wxapi.getnodestatistics:
+  path: '/wxapi/statistics/{id}/{uid}'
+  methods: [GET]
+  defaults:
+    _controller: '\Drupal\wxapi\Controller\WxapiController::getNodeStatistics'
+    _title: 'get getNodeStatistics'
+  requirements:
+    _access: 'TRUE'
+wxapi.setnodevoteusefull:
+  path: '/wxapi/vote/{id}/{uid}'
+  methods: [GET]
+  defaults:
+    _controller: '\Drupal\wxapi\Controller\WxapiController::setNodeUseful'
+    _title: 'get setNodeUseful'
+  requirements:
+    _access: 'TRUE'
+wxapi.postcomment:
+  path: '/wxapi/postcomment'
+  methods: [POST]
+  defaults:
+    _controller: '\Drupal\wxapi\Controller\WxapiController::postComment'
+    _title: 'get USER'
+  requirements:
+    _access: 'TRUE'

@@ -1,0 +1,99 @@
+<?php
+
+//function wxjs_page_attachments(array &$page) {
+////  if (!\Drupal::currentUser()->hasPermission('access contextual links')) {
+////    return;
+////  }
+//  $page['#attached']['library'][] = 'wxjs/wx_js';
+//}
+use Drupal\node\Entity\Node;
+use Drupal\profile\Entity\Profile;
+use Drupal\user\Entity\User;
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function wxjs_preprocess_page(&$variables)
+{
+//  ksm($variables);
+//  $path = \Drupal::request()->getpathInfo();// /lymeta/im/20161207
+    $path = \Drupal::service('path.current')->getPath();// node/1
+    $arg = explode('/', $path);
+    if ($arg[1] == 'admin') return 0;
+    if (in_array('edit', $arg)) return 0;
+
+    $variables['#attached']['library'][] = 'wxjs/wx_js';
+    $uid = 4;//
+    $config = \Drupal::config('wechat_api.settings')->get('mpaccount_' . $uid);
+    $request = \Drupal::request();
+    $route_match = \Drupal::routeMatch();
+    $title = \Drupal::service('title_resolver')->getTitle($request, $route_match->getRouteObject());
+
+    if (is_array($title)) $title = $title['#markup'];
+    global $base_url;
+    //https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421141115
+    $imgUrl =  $base_url.theme_get_setting('logo.url');
+    $cdn_enabled = \Drupal::config('cdn.settings')->get('status');
+    if($cdn_enabled) $imgUrl = 'https:' . theme_get_setting('logo.url');
+    $shareData = array(
+        'title'  => $title . '|主内公众云-永不止息',
+        'desc'   => '朋友，分享给您一篇我喜欢的内容',//\Drupal::config('system.site')->get('slogan')
+        'link'   => "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]",
+        'imgUrl' => $imgUrl
+    );
+    if (isset($variables['node']) && $arg[1] == 'node' && isset($arg[2]) && is_numeric($arg[2])) {
+        $cached_data_keyword = 'wxjs_sharedata_node_' . $arg[2];
+        if ($cache = \Drupal::cache()->get($cached_data_keyword)) {
+            $shareData = $cache->data;
+        } else {
+            $role_id = 'wechat_account';
+            /* @var $node Node */
+            $node = $variables['node'];
+            /* @var $account User */
+            $account = $node->getOwner();
+            if ($account->hasRole($role_id)) {
+                $profile_type = 'wechat_account_data';
+                /* @var $profile Profile */
+                $profile = \Drupal::entityTypeManager()->getStorage('profile')
+                    ->loadByUser($account, $profile_type);
+                if($profile){
+                    $headimgurl = $profile->get('field_mp_accounts_hd_head_img')->value .'?type=1.jpg';
+                    $shareData['imgUrl'] = str_replace('http://', 'https://', $headimgurl);
+                }
+            }
+            $body = $node->body->getValue();
+            $shareData['desc'] = isset($body[0]['summary']) ?$body[0]['summary']: $shareData['desc'];
+
+            //https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421141115
+            //分享给朋友 desc type＝'music/video/link' dataUrl=''    
+            $musicurl = false;  
+            
+            
+            if($node->hasField('field_article_audio') && !$node->field_article_audio->isEmpty()){
+                $musicurl = $node->field_article_audio->value;    
+            }elseif($node->hasField('field_mp3') && !$node->field_mp3->isEmpty()){
+                $fid = $node->field_mp3->getValue()[0]['target_id'];
+                $file = \Drupal\file\Entity\File::load($fid);
+                $musicurl = file_create_url($file->getFileUri());
+                
+                $cdn_enabled = \Drupal::config('cdn.settings')->get('status');
+                if($cdn_enabled) $musicurl = 'https:' . $musicurl;
+            }
+            if($musicurl){
+                $shareData['type'] = 'music';
+                $shareData['dataUrl'] = $musicurl;
+            }
+            \Drupal::cache()->set($cached_data_keyword, $shareData, -1);
+        }
+
+
+    }
+    $variables['#attached']['drupalSettings']['wxjs']['shareData'] = $shareData;
+
+    require_once "jssdk.php";
+    $appid = $config['appid'];
+    $appsecret = $config['appsecret'];
+    $jssdk = new JSSDK($appid, $appsecret);
+    $signPackage = $jssdk->GetSignPackage();
+    $variables['#attached']['drupalSettings']['wxjs']['signPackage'] = $signPackage;
+}

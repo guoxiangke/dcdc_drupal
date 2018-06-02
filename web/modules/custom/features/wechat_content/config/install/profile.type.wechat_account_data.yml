@@ -1,0 +1,13 @@
+langcode: zh-hans
+status: true
+dependencies: {  }
+id: wechat_account_data
+label: 'Wechat account data'
+registration: false
+multiple: false
+roles:
+  wechat_account: wechat_account
+  authenticated: '0'
+  administrator: '0'
+  wechat_user: '0'
+weight: 0

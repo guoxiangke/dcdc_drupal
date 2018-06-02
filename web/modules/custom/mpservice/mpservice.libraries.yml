@@ -1,0 +1,10 @@
+drupal.node.fullview:
+  version: VERSION
+  # css:
+  #   theme:
+  #     css/node.preview.css: {}
+  js:
+    node.fullview.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal

@@ -1,0 +1,31 @@
+langcode: zh-hans
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_article_wxuid
+    - node.type.article
+id: node.article.field_article_wxuid
+field_name: field_article_wxuid
+entity_type: node
+bundle: article
+label: 微信收集者
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:user'
+  handler_settings:
+    include_anonymous: true
+    filter:
+      type: role
+      role:
+        wechat_user: wechat_user
+        administrator: '0'
+        wechat_account: '0'
+    target_bundles: null
+    sort:
+      field: _none
+    auto_create: false
+field_type: entity_reference

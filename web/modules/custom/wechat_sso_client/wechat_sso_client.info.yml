@@ -1,0 +1,9 @@
+name: Wechat SSO Client
+description: 'Provides sso login by ybzx fwh'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - wechat_api
+

@@ -1,0 +1,88 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.taxonomy_term.lylist.field_lylist_comment
+    - field.field.taxonomy_term.lylist.field_term_lylist_author
+    - field.field.taxonomy_term.lylist.field_term_lylist_code
+    - field.field.taxonomy_term.lylist.field_term_lylist_day
+    - field.field.taxonomy_term.lylist.field_term_lylist_imageurl
+    - field.field.taxonomy_term.lylist.field_term_lylist_index
+    - field.field.taxonomy_term.lylist.field_term_lylist_lywx
+    - taxonomy.vocabulary.lylist
+  module:
+    - comment
+    - path
+    - text
+id: taxonomy_term.lylist.default
+targetEntityType: taxonomy_term
+bundle: lylist
+mode: default
+content:
+  description:
+    type: text_textfield
+    weight: 0
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_lylist_comment:
+    weight: 37
+    settings: {  }
+    third_party_settings: {  }
+    type: comment_default
+  field_term_lylist_author:
+    weight: 35
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_term_lylist_code:
+    weight: 34
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_term_lylist_day:
+    weight: 31
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_term_lylist_imageurl:
+    weight: 36
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_term_lylist_index:
+    weight: 32
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_term_lylist_lywx:
+    weight: 33
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  name:
+    type: string_textfield
+    weight: -5
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 30
+    settings: {  }
+    third_party_settings: {  }
+hidden: {  }

@@ -1,0 +1,11 @@
+name: WX API
+description: 'Provides API for WX APP 小程序'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - wechat_api
+  - simplehtmldom
+  - statistics
+  - votingapi_widgets

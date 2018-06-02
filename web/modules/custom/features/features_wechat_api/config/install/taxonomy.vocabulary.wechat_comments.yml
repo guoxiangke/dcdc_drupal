@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Wechat comments'
+vid: wechat_comments
+description: '留言板之用 by wechat account已认证的公众号'
+hierarchy: 0
+weight: 0

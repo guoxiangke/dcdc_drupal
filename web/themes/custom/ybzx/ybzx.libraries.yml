@@ -1,0 +1,17 @@
+global-styling:
+  css:
+    theme:
+      css/md/custom-ui.css: {}
+      css/md/normalize.css: {}
+      css/md/style.css: {}
+      css/md/basic-ui.css: {}
+      css/md/highlight.min.css: {}
+      css/md/github-light.css: {}
+      css/md/wechat-fix.css: {}
+      css/style.css: {}
+global-js:
+  version: VERSION
+  js:
+    js/main.js: {}
+  dependencies:
+    - core/jquery

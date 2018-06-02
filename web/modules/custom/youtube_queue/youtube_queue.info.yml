@@ -1,0 +1,5 @@
+name: 'Youtube Queue'
+type: module
+description: 'Get youtube contents by queue'
+core: 8.x
+package: 'Custom'

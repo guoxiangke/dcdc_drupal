@@ -1,0 +1,30 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - comment.type.lylist_comments
+    - field.field.comment.lylist_comments.comment_body
+    - field.field.comment.lylist_comments.field_lylist_comment_lymeta_nid
+  module:
+    - text
+id: comment.lylist_comments.default
+targetEntityType: comment
+bundle: lylist_comments
+mode: default
+content:
+  comment_body:
+    label: hidden
+    type: text_default
+    weight: 0
+    settings: {  }
+    third_party_settings: {  }
+  field_lylist_comment_lymeta_nid:
+    weight: 102
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  links:
+    weight: 100
+hidden: {  }

@@ -1,0 +1,135 @@
+<?php
+use Drupal\comment\CommentInterface;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\node\NodeInterface;
+
+/**
+ * Prepares variables for view templates.
+ *
+ * Default template: views-view.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - view: The ViewExecutable object.
+ * 良友评论节目页不显示相关term节点内容
+ * @see template_preprocess_field()
+ * @see comment_preprocess_field()
+ */
+function ybzx_preprocess_views_view(&$variables) {
+	if($variables['id'] == 'taxonomy_term') {
+//		ksm($variables);
+		$path = \Drupal::request()->getpathInfo();
+		$arg  = explode('/',$path);
+		$tid = $arg[3];//$variables['view_array']['#arguments'][0];//arg(2)=> /taxonomy/term/12/
+		/* @var $term Term*/
+		$term = Term::load(13);
+		$vid ='lylist';
+		if($term->getVocabularyId() == $vid){
+			$variables['rows'] ='';
+			$variables['pager'] ='';
+			$variables['feed_icons'] ='';
+		}
+	}
+}
+//递归
+function _subtermhtml($vocabulary_id,$tid){
+	//get child terms!!
+	$html = '';
+	$children = \Drupal::entityManager()->getStorage('taxonomy_term')->loadTree($vocabulary_id, $tid, 1, TRUE);
+	if(!$children) return $html;
+  /* @var $term Term */
+  $html .= '<ul class="wechat_comments-indent">';
+  foreach ($children as $term) {//一级菜单
+  	// dpm(__LINE__,$term->id());
+		// $parents = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadAllParents($term->id());
+		// $depth = count($parents);//2 3
+  	//get all nodes title & nid in this tid!!!
+		$fields=[
+			'status'=> NodeInterface::PUBLISHED,
+			'field_article_wechat_term.entity.tid'=>$term->id()
+		];
+  	$nids = tools_wxapi_get_nids($fields,'article',-1);
+    $html .= '<li class="wcn-indent-p"><div class="flex-row flex-space-between"><span>'.$term->getName().'</span>';
+  	if($nids){
+  		$html .= '<span class="data-open">'.count($nids).'篇</span></div>';
+    	$titles = tools_get_titles(array_values($nids));
+    	$html .= '<ol class="sub-articles">';
+    	foreach ($titles as $key => $title) {
+    		$html .= '<li class="wcn-indent"><a href="/node/'.$nids[$key].'">'.$title.'</a></li>';
+    	}
+    	$html .= '</ol>';
+    }else{
+    	$html .= '</div>';
+    }
+  	$html .= _subtermhtml($vocabulary_id,$term->id());
+    $html .= '</li>';
+  }
+  $html .= '</ul>';
+  return $html;
+}
+function ybzx_preprocess_taxonomy_term(&$variables) {
+	$variables['term'] = $variables['elements']['#taxonomy_term'];
+	/** @var \Drupal\taxonomy\TermInterface $term */
+	$term = $variables['term'];
+	$tid = $term->id();
+	$vocabulary_id = $term->bundle();//== $term->getVocabularyId();
+	// dpm($term->label());
+	// dpm($term->getName());
+	if($vocabulary_id == 'lylist') {
+		$variables['tid'] = $tid;
+		$variables['attributes']['class'][]= 'vocabulary-lylist';
+	}
+	if($vocabulary_id == 'wechat_comments') {//思麦首页
+		$parent = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadParents($tid);
+		$parent = reset($parent);
+		$html = '';
+		// dvm($parent);//$term->label() $term->id()// dpm($term->getWeight() );
+		if(!$parent){//isRootTerm 
+			$html = _subtermhtml($vocabulary_id,$tid);
+		}
+		$variables['list_nodes'] = ['#markup'=>$html];
+	}
+	// $vid = $term->vid();//wechat_comments
+	//if pid == wechat-comments!!!
+	//list sub items node
+}
+
+
+
+/**
+ * Implements hook_preprocess_HOOK() for node.html.twig.
+ * @see bartik_preprocess_node
+ * @see template_preprocess_node
+ */
+function ybzx_preprocess_node(&$variables) {
+	$variables['node'] = $variables['elements']['#node'];
+	/** @var \Drupal\node\NodeInterface $node */
+	$node = $variables['node'];
+	if($node->bundle()=='lymeta'){
+//		dpm($node->getType());
+		$tid = $node->get('field_lymeta_tid')->getString();
+		$term = Term::load($tid);//		entity_load()
+		$code = $term->get('field_term_lylist_code')->getString();//ee
+		$date = date('ymd',$node->getCreatedTime());//20170421
+
+		$https = 'https://';
+		$cdnlink = $https . 'lywxaudio.yongbuzhixi.com';
+		$tmp_path = '/' . date('Y',time()) . '/' . $code . '/' . $code;
+		$path = $tmp_path . $date . '.mp3';// /2016/rt/rt161127.mp3
+		$musicurl = $cdnlink . $path . upyun_get_token($path);//depends on lyapi.module
+		$variables['audio'] = $musicurl;
+	}
+	//fix bug todo: delete!!!
+	if($node->bundle()=='article'){
+		$vid = $node->get('field_article_video')->getString();
+		if(stripos($vid,'vid') !== false || stripos($vid,'youtube') !== false){
+    		$node->set('field_article_video', '');
+    		$node->save();
+		}
+	}
+}
+
+function ybzx_preprocess(&$variables, $hook)
+{
+    $variables['base_path'] = base_path();
+}

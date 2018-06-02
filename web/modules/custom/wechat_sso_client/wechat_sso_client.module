@@ -1,0 +1,17 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: dale
+ * Date: 2017/1/24
+ * Time: 下午3:18
+ */
+/**
+ * Implements hook_preprocess_page().
+ */
+/**
+ * Implements hook_ajax_render_alter().
+ */
+function wechat_sso_client_preprocess_page(&$variables)
+{
+    $variables['#attached']['library'][] = 'wechat_sso_client/wechat_sso_client';
+}

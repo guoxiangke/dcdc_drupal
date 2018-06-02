@@ -1,0 +1,144 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: dale.guo
+ * Date: 11/25/16
+ * Time: 4:10 PM
+ */
+use Drupal\user\Entity\User;
+use Drupal\profile\Entity\Profile;
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+use Drupal\votingapi\Entity\Vote;
+
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueInterface;
+
+
+//cron set new user pic url field then delete!!!
+function wxapi_cron() {
+    // https://api.drupal.org/api/drupal/core!includes!database.inc/function/db_select/8.2.x
+    $query = \Drupal::database()->select('user__field_user_picture_url', 't');
+    $query->addField('t', 'entity_id');
+    $query->condition('t.bundle', 'user');
+    $subquery_result = array_keys($query->execute()->fetchAllAssoc('entity_id'));
+    if(empty($subquery_result)) $subquery_result=[0];
+
+    $query = \Drupal::database()->select('users', 't');
+    $query->addField('t', 'uid');
+    // $query->condition('t.bundle', 'wechat_account_data');
+    $query->condition('t.uid', $subquery_result, 'NOT IN');
+    $query->range(0, 1000);
+    $uids = array_keys($query->execute()->fetchAllAssoc('uid'));
+
+    foreach ($uids as $uid) {
+        $user = User::load($uid);
+        $profile_type = 'wechat_account_data';
+        /* @var $profile Profile */
+        $profile = \Drupal::entityTypeManager()->getStorage('profile')
+            ->loadByUser($user, $profile_type);
+        if ($profile && $profile->get('field_mp_accounts_hd_head_img')->value!=$user->get('field_user_picture_url')->value) {
+            \Drupal::logger('wxapi_cron')->notice($uid);
+            $user->set('field_user_picture_url', $profile->get('field_mp_accounts_hd_head_img')->value);
+            $user->save();
+            \Drupal::logger('wxapi_account_cron')->notice($uid);
+        }else{
+          $profile_type = 'wechat_user_data';
+          /* @var $profile Profile */
+          $profile = \Drupal::entityTypeManager()->getStorage('profile')
+              ->loadByUser($user, $profile_type);
+          if ($profile && $profile->get('field_wxuser_headimgurl')->value!=$user->get('field_user_picture_url')->value) {
+              \Drupal::logger('wxapi_cron')->notice($uid);
+              $user->set('field_user_picture_url', $profile->get('field_wxuser_headimgurl')->value);
+              $user->save();
+          }else{
+            // \Drupal::logger('wxapi_cron_delete')->notice($uid);
+            // $user->delete();
+          }
+        }
+    }
+
+    // $query = \Drupal::database()->select('user__field_user_openids', 't');
+    // $query->addField('t', 'entity_id');
+    // $query->condition('t.bundle', 'user');
+    // $query->condition('t.entity_id', $subquery_result, 'NOT IN');
+    // $query->range(0, 100);
+    // $uids = array_keys($query->execute()->fetchAllAssoc('entity_id'));
+    // foreach ($uids as $uid) {
+    //     $user = User::load($uid);
+    //     $profile_type = 'wechat_user_data';
+    //     /* @var $profile Profile */
+    //     $profile = \Drupal::entityTypeManager()->getStorage('profile')
+    //         ->loadByUser($user, $profile_type);
+    //     if ($profile && $profile->get('field_wxuser_headimgurl')->value!=$user->get('field_user_picture_url')->value) {
+    //         // \Drupal::logger('wxapi_cron')->notice($uid);
+    //         $user->set('field_user_picture_url', $profile->get('field_wxuser_headimgurl')->value);
+    //         $user->save();
+    //     }
+    // }
+    // return $uids; 
+}
+
+
+
+
+/**
+ * Get the voting results for an entity.
+ *
+ * @param string $entity_type_id
+ *   The type of entity, e.g. 'node'.
+ * @param int $entity_id
+ *   The ID of the entity.
+ *
+ * @return array
+ *   An nested array
+ * @see \Drupal\votingapi\VoteResultFunctionManager->getResults()
+ */
+// public function getResults($entity_type_id, $entity_id) {
+function get_vote($entity_id,$entity_type_id='node'){
+  $results = array();
+  $result = db_select('votingapi_result', 'v')
+    ->fields('v', array('type', 'function', 'value'))
+    ->condition('entity_type', $entity_type_id)
+    ->condition('entity_id', $entity_id)
+    ->execute();
+  while ($row = $result->fetchAssoc()) {
+    $results[$row['type']][$row['function']] = $row['value'];
+  }
+  return $results;
+}
+function is_voted($nid,$uid){
+  $results = array();
+  $result = db_select('votingapi_vote', 'v')
+    ->fields('v', array('id'))
+    ->condition('user_id', $uid)
+    ->condition('entity_id', $nid)
+    ->condition('entity_type', 'node')
+    //field_name=>'field_vote'
+    ->execute()->fetchField();
+  $re = get_vote($nid);
+  $votes = 0;
+  if(isset($re['useful']['vote_sum']))  $votes = $re['useful']['vote_sum']?:0;
+  $return = ['votes'=>$votes];
+  $return['is_voted']=0;
+  if($result) {
+    $return['is_voted']=1;
+  }
+  return $return;
+}
+
+// @see https://www.drupal.org/project/votingapi/issues/2846033
+function save_vote($nid,$uid) {
+  $vote = Vote::create(['type' => 'useful']);
+  $vote->setVotedEntityId($nid);
+  $vote->setVotedEntityType('node');
+  $vote->setValueType('points');
+  $vote->setValue(1);
+  $vote->setOwnerId($uid);
+  // $vote->setSource(array('192.168.1.1'));
+  $vote->save();
+
+  $re = get_vote($nid);
+  if(isset($re['useful']['vote_sum'])) return $re['useful']['vote_sum']?:0;
+  return 0;
+}

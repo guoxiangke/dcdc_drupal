@@ -1,0 +1,8 @@
+langcode: zh-hans
+status: true
+dependencies:
+  config:
+    - eck.eck_entity_type.points
+name: 积分
+type: point
+description: 'default points type'

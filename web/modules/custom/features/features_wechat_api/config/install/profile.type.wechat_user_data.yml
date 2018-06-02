@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+id: wechat_user_data
+label: 'Wechat User Data'
+registration: false
+multiple: false
+roles:
+  wechat_user: wechat_user
+  authenticated: '0'
+  administrator: '0'
+  consulter: '0'
+  wechat_account: '0'
+weight: 0

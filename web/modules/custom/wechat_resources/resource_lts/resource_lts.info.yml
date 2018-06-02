@@ -1,0 +1,8 @@
+name: LTS API
+description: 'Provides basic API for lts33 audio'
+package: A-Dev Custom modules
+
+type: module
+core: 8.x
+dependencies:
+  - wechat_api

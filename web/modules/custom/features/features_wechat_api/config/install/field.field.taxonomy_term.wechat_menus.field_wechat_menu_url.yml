@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.field_wechat_menu_url
+    - taxonomy.vocabulary.wechat_menus
+id: taxonomy_term.wechat_menus.field_wechat_menu_url
+field_name: field_wechat_menu_url
+entity_type: taxonomy_term
+bundle: wechat_menus
+label: 链接地址或关键词
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 'http://www.yongbuzhixi.com'
+default_value_callback: ''
+settings: {  }
+field_type: string
