@@ -736,8 +736,6 @@ function mp_getwxcontent($link, $weObj=NULL)
     $ori_html = file_get_contents($link, false, stream_context_create($arrContextOptions));
     $html = str_get_html($ori_html);
 //	$html = file_get_html($link);
-    $ori_title = $html->find('title', 0)->plaintext;
-
     preg_match('/var user_name = "(\S+)"/', $ori_html, $matchs);
     if (!isset($matchs[1])) {
         $resources = [
@@ -750,7 +748,22 @@ function mp_getwxcontent($link, $weObj=NULL)
     }
     $gh_id = $matchs[1];//gh_01f807be5d1b
     preg_match('/var nickname = "(.+)"/', $ori_html, $matchs);
+    if (!isset($matchs[1])) {
+        $resources = [
+            'keyword' => '_error',
+            'type'    => 'text',//kf_create_session //news //music
+            'expire'  => REQUEST_TIME - 43200,//expires soon.
+            'obj'     => ['text' => "啊喔，出错了，请再试一次[强]"]
+        ];
+        return $resources;
+    }
     $name = $matchs[1];//生活无国界
+
+    $ori_title = $name;
+    preg_match('/var msg_title = "(.+)"/', $ori_html, $matchs);
+    if(isset($matchs[1])){
+        $ori_title = $matchs[1];
+    }
 
     $user = user_load_by_name($name);
     if (!$user) {
