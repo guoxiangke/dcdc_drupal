@@ -113,6 +113,7 @@
         "drush/drush": "^9.0.0",
         "htmlpurifier": "^4.10",
         "michelf/php-markdown": "^1.8",
+        "simplehtmldom": "^1.5",
         "thomasbachem/php-ga": "^1.2",
         "vlucas/phpdotenv": "^2.4",
         "webflo/drupal-finder": "^1.0.0",
