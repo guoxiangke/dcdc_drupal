@@ -30,6 +30,7 @@ function _simplhtmldom_get_library_path() {
   }
   else {
     $paths = array(
+      'libraries/' . $library,
       'sites/all/libraries/' . $library,
       drupal_get_path('module', 'simplehtmldom') . '/' . $library,
       drupal_get_path('module', 'simplehtmldom') . "/libraries",
