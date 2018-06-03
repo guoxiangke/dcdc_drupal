@@ -9,19 +9,31 @@ function mpservice_node_view(array &$build, \Drupal\Core\Entity\EntityInterface 
 				$path = "/tmp/youtube/$vid.mp4";
 				$build['#attached']['drupalSettings']['node']['video'] = $bucket_url.$path. upyun_get_token($path, 86400);
 			}
-			
+			//todo delete 20180603
 			if($path = $node->get('field_upyun_path')->value){
 				if(strpos($path, '.mp4')!==false){
 					$build['#attached']['drupalSettings']['node']['video'] = $bucket_url.$path. upyun_get_token($path, 86400);
 				}else{
 					$build['#attached']['drupalSettings']['node']['audio'] = $bucket_url.$path. upyun_get_token($path, 86400);
 				}
+			}//delete end!
+			if($vieourl = $node->get('field_video_url')->value){
+				if(stripos($vieourl,'http://up.yongbuzhixi.com') === 0){
+					$path = urldecode(substr($vieourl, 25));
+					$cdnlink = 'http://up.yongbuzhixi.com';
+					$vieourl = $cdnlink . $path . upyun_get_token($path);//depends on lyapi.module
+				}
+				$build['#attached']['drupalSettings']['node']['video'] = $vieourl;
 			}
-			if($node->get('field_video_url')->value)
-				$build['#attached']['drupalSettings']['node']['video'] = $node->get('field_video_url')->value;
 
-			if($node->get('field_article_audio')->value)
-				$build['#attached']['drupalSettings']['node']['audio'] = $node->get('field_article_audio')->value;
+			if($musicurl = $node->get('field_article_audio')->value){
+				if(stripos($musicurl,'http://up.yongbuzhixi.com') === 0){
+					$path = urldecode(substr($musicurl, 25));
+					$cdnlink = 'http://up.yongbuzhixi.com';
+					$musicurl = $cdnlink . $path . upyun_get_token($path);//depends on lyapi.module
+				}
+				$build['#attached']['drupalSettings']['node']['audio'] = $musicurl;
+			}
 		}
 	}
 }
