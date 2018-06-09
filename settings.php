@@ -814,3 +814,4 @@ if (!file_exists($filePrivatePath)) {
     mkdir($filePrivatePath, 0777, true);
 }
 $settings['file_private_path'] = __DIR__.'/files/private';
+$config['system.site']['name'] = '主内公众云';
