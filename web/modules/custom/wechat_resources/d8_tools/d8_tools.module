@@ -93,7 +93,20 @@ function tools_wechat_api_get_news($nids){
     return $news;
 }
 
+/**
+ * return [
+ *      '$entity_id' => '$field_article_link_value',
+ *      ...
+ * ]
+ */
 
+function toolsGetExternalLinks($nids=[]){
+    $query = \Drupal::database()->select('node__field_article_link', 't');
+    $query->fields('t', ['entity_id','field_article_link_value']);
+    $query->condition('t.entity_id', $nids, 'IN');
+    $query-> orderBy('t.entity_id', 'DESC');
+    return $query->execute()->fetchAllKeyed();
+}
 function tools_get_titles($nids=[]){
     $query = \Drupal::database()->select('node_field_data', 't');
     $query->addField('t', 'title');

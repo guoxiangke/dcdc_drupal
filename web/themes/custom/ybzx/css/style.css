@@ -107,6 +107,14 @@ h1.page-header {
 	border-bottom:1px solid #f0f0f0;
   color:#888888;
 }
+.wcn-indent-p .wechat_comments-indent ol li {
+    padding: 5px 0;
+    border-bottom: 1px dotted #f0f0f0;
+    color: #888888;
+}
+li.wcn-indent span.glyphicon-new-window{
+	font-size: 10px;
+}
 
 .data-open::after {
 		margin-left: 3px;
@@ -125,12 +133,6 @@ h1.page-header {
 .sub-articles p{
 	padding-left: 1em;
 }
-.wcn-indent-p .wechat_comments-indent ol li {
-    padding: 5px 0;
-    border-bottom: 1px dotted #f0f0f0;
-    color: #888888;
-}
-
 .field--type-text-long img{
 	width: 100%;
 }

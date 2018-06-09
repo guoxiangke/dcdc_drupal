@@ -52,10 +52,22 @@ function _subtermhtml($vocabulary_id,$tid){
     $html .= '<li class="wcn-indent-p"><div class="flex-row flex-space-between"><span>'.$term->getName().'</span>';
   	if($nids){
   		$html .= '<span class="data-open">'.count($nids).'篇</span></div>';
-    	$titles = tools_get_titles(array_values($nids));
+  		$entity_ids = array_values($nids);
+    	$titles = tools_get_titles($entity_ids);
+    	$links = toolsGetExternalLinks($entity_ids);
     	$html .= '<ol class="sub-articles">';
     	foreach ($titles as $key => $title) {
-    		$html .= '<li class="wcn-indent"><a href="/node/'.$nids[$key].'">'.$title.'</a></li>';
+    		$nid = $nids[$key];
+    		if(isset($links[$nid])){
+    			$link = $links[$nid];
+    			$target = '_blank';
+    		}else{
+    			$link = '/node/'.$nid;
+    			$target = '_self';
+    		}
+    		$html .= '<li class="wcn-indent"><a href="'.$link.'" target="'.$target.'">'.$title;
+    		if($target == '_blank') $html .= '<span class="glyphicon glyphicon-new-window"></span>';
+    		$html .= '</a></li>';
     	}
     	$html .= '</ol>';
     }else{
