@@ -110,7 +110,7 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
     if (is_numeric($keyword)) $tmp_keyword = substr($keyword, 0, 3);//60113
     if (isset($tmp_keyword) && in_array($tmp_keyword, $lylist_index)&& !$is_lywx ) {//601[1-7-14]
         //周二 周四 播放上周的直播节目。
-        if($tmp_keyword=="603" && in_array(date('w'), [2,4]) 
+        if($tmp_keyword=="603" && in_array(date('w'), [2,4])
             && !(date('Ym')=='201706' && date('j')<15 ) ){
             $keyword = '6037';
         }
@@ -340,7 +340,7 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
     }
 
     if($is_lywx)
-    if (preg_match('/\D+/', $keyword)){ //非数字
+    if (0&&preg_match('/\D+/', $keyword)){ //非数字
 //        $weObj->transfer_customer_service()->reply();
         $resources = [
             'keyword' => $keyword,
@@ -503,7 +503,7 @@ function lyapi_get_meta()
         $url = 'http://txly2.net/' . $code;
         //https://github.com/sunra/php-simple-html-dom-parser/issues/41
         //https://stackoverflow.com/questions/42685814/file-get-contents-stream-does-not-support-seeking-when-was-php-behavior-abo
-        
+
         $headers = get_headers($url, 1);
         if ($headers[0] != 'HTTP/1.1 200 OK') continue;
         $html = file_get_html($url,false,null,0);
@@ -576,7 +576,7 @@ function save_lymeta($tid, $body, $date = NULL)
     }else{
         $created = strtotime($date.' 00:00:00');
         $data = array(
-          'type' => 'lyprogram', 
+          'type' => 'lyprogram',
           'created' => $created,
           'title' => $body,
           'uid' => 268,//良友知音
