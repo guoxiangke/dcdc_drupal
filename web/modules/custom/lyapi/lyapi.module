@@ -340,7 +340,7 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
     }
 
     if($is_lywx)
-    if (0&&preg_match('/\D+/', $keyword)){ //非数字
+    if (preg_match('/\D+/', $keyword)){ //非数字
 //        $weObj->transfer_customer_service()->reply();
         $resources = [
             'keyword' => $keyword,

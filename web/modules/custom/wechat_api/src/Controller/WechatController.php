@@ -96,7 +96,7 @@ class WechatController extends ControllerBase
 				$weObj->text($desc);
 				break;
 			case 'kf_create_session'://TODO:::
-				//$weObj->transfer_customer_service();
+				$weObj->transfer_customer_service();
 				break;
 			case 'news':
 				$new = $resources['obj'];
