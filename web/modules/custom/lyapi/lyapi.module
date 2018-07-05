@@ -34,6 +34,9 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
 {
     $app_copy_name = '公众号:永不止息';
     $zy_test_appname = '良友知音';
+    $https = 'http://';
+    $cdnlink = $https . 'lywxaudio.yongbuzhixi.com';
+    $default_desc = "点击▶️收听 " . $app_copy_name;
     $app_name = NULL;
     $is_certified = 0;
     if ($weObj) {
@@ -161,7 +164,7 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
             $hgmusicurl = 'http://txly2.net' . $link;
             $title = '【' . $process_index . '】' . $title . ' ' . $lylist_name[$process_index];
             $date = date('ymd');
-            $desc = "点击▶️收听 " . $app_copy_name . ' ' . ($offset ? $date : ' 每日更新');
+            $desc = $default_desc . ' ' . ($offset ? $date : ' 每日更新');
             $resources = [
                 'keyword'       => $keyword,
                 'type'          => 'music',
@@ -180,8 +183,6 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
             ];
             return $resources;
         }//end lts33 641-645
-        $https = 'http://';
-        $cdnlink = $https . 'lywxaudio.yongbuzhixi.com';
         $code = $lylist_code[$process_index];//ee
 
         $has_program = FALSE;
@@ -227,7 +228,7 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
 //        $hgmusicurl = 'http://txly2.net/ly/audio' . $path;
         $tmp_keyword_code = $ly_tmp_keyword_code?$ly_tmp_keyword_code:$process_index;
         $title = '【' . $tmp_keyword_code . '】' . $lylist_name[$process_index];
-        $desc = "点击▶️收听 " . $app_copy_name . ($offset ? $date : ' 每日更新');
+        $desc = $default_desc . ($offset ? $date : ' 每日更新');
 
         $resources = [
             'keyword' => $keyword,
@@ -319,28 +320,67 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
             return $resources;
         }
     }
-
-    if($is_lywx){
-        //金句
-        if($keyword=='金句'){
-            $file_path = DRUPAL_ROOT.'/sites/default/files/jinju/';
-            $jpg = '@'.$file_path.date('W').'.jpg';
-            $resources = [
-                'keyword' => $keyword,
-                'type'    => 'image',
-                'expire'  => -1,
-                'obj'     => array('media'=>$jpg),
+    //region only lywx process
+    if(!$is_lywx){
+        return array(
+                'type'    => 'text',
                 'ga_data' => array(
-                    'category' => 'lyapi_ju',
-                    'action'   => 'get',
+                    'category' => 'lyapi_error',
+                    'action'   => '没return？',
                 ),
-            ];
-            return $resources;
-        }
+                'obj'     => array(
+                    'text' => '出错啦!',
+                )
+            );
+    }
+    //2018-729
+    $process_index=substr($keyword, 0,3);
+    if($process_index == '729'){
+        $offset = substr($keyword, 3,1)?:1;
+        $keyword729 = substr($keyword, 0,4);
+
+        $tmp_path = '/' . date('Y') . '/' . $process_index . '/';
+        $path = $tmp_path . $offset . '.mp3';// /2018/629/1.mp3
+        $upt = upyun_get_token($path);
+        $uri = $cdnlink . $path;
+        $musicurl = $uri . $upt;
+        $resources = [
+            'keyword' => $keyword729,
+            'type'    => 'music',
+            'expire'  => REQUEST_TIME + 43200,//-1 never expires.
+            'obj'     => [
+                'title'      => '台庆直播'.$offset,
+                'desc'       => $default_desc,
+                'musicurl'   => $musicurl,
+                'hgmusicurl' => $musicurl,
+            ],
+            'ga_data' => array(
+                'category' => 'lyapi_audio',
+                'action'   => '729',
+            ),
+        ];
+        return $resources;
+    }
+    //金句
+    if($keyword=='金句'){
+        $file_path = DRUPAL_ROOT.'/sites/default/files/jinju/';
+        $jpg = '@'.$file_path.date('W').'.jpg';
+        $resources = [
+            'keyword' => $keyword,
+            'type'    => 'image',
+            'expire'  => -1,
+            'obj'     => array('media'=>$jpg),
+            'ga_data' => array(
+                'category' => 'lyapi_ju',
+                'action'   => 'get',
+            ),
+        ];
+        return $resources;
     }
 
-    if($is_lywx)
+
     if (preg_match('/\D+/', $keyword)){ //非数字
+        \Drupal::logger('transfer_customer_service')->notice($keyword);
 //        $weObj->transfer_customer_service()->reply();
         $resources = [
             'keyword' => $keyword,
@@ -376,6 +416,7 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
         ];
         return $resources;
     }
+    //endregion
 }
 
 function ly_stream_menu()
