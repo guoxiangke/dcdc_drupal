@@ -340,7 +340,7 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
         $keyword729 = substr($keyword, 0,4);
 
         $tmp_path = '/' . date('Y') . '/' . $process_index . '/';
-        $path = $tmp_path . $offset . '.mp3';// /2018/629/1.mp3
+        $path = $tmp_path . $offset . '.mp3';//  /2018/629/1.mp3
         $upt = upyun_get_token($path);
         $uri = $cdnlink . $path;
         $musicurl = $uri . $upt;
