@@ -337,29 +337,31 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
     $process_index=substr($keyword, 0,3);
     if($process_index == '729'){
         $offset = substr($keyword, 3,1)?:1;
-        $keyword729 = substr($keyword, 0,4);
+        if($offset<4){
+            $keyword729 = substr($keyword, 0,4);
 
-        $tmp_path = '/' . date('Y') . '/' . $process_index . '/';
-        $path = $tmp_path . $offset . '.mp3';//  /2018/629/1.mp3
-        $upt = upyun_get_token($path);
-        $uri = $cdnlink . $path;
-        $musicurl = $uri . $upt;
-        $resources = [
-            'keyword' => $keyword729,
-            'type'    => 'music',
-            'expire'  => REQUEST_TIME + 43200,//-1 never expires.
-            'obj'     => [
-                'title'      => '台庆彩蛋'.$offset,
-                'desc'       => $default_desc,
-                'musicurl'   => $musicurl,
-                'hgmusicurl' => $musicurl,
-            ],
-            'ga_data' => array(
-                'category' => 'lyapi_audio',
-                'action'   => '729',
-            ),
-        ];
-        return $resources;
+            $tmp_path = '/' . date('Y') . '/' . $process_index . '/';
+            $path = $tmp_path . $offset . '.mp3';//  /2018/629/1.mp3
+            $upt = upyun_get_token($path);
+            $uri = $cdnlink . $path;
+            $musicurl = $uri . $upt;
+            $resources = [
+                'keyword' => $keyword729,
+                'type'    => 'music',
+                'expire'  => REQUEST_TIME + 43200,//-1 never expires.
+                'obj'     => [
+                    'title'      => '台庆彩蛋'.$offset,
+                    'desc'       => $default_desc,
+                    'musicurl'   => $musicurl,
+                    'hgmusicurl' => $musicurl,
+                ],
+                'ga_data' => array(
+                    'category' => 'lyapi_audio',
+                    'action'   => '729',
+                ),
+            ];
+            return $resources;
+        }
     }
     //金句
     if($keyword=='金句'){
