@@ -27,7 +27,7 @@ lyapi.cc:
     _title: 'Hello World'
   requirements:
     _permission: 'access content'
-lyapi.cc:
+lyapi.json:
   path: '/lyapi/json'
   defaults:
     _controller: '\Drupal\lyapi\Controller\LyapiController::getJson'
