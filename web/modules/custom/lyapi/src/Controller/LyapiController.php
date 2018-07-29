@@ -54,7 +54,6 @@ class LyapiController extends ControllerBase {
 	public function getJson(){
 	  $vids = Vocabulary::loadMultiple();
 	  foreach ($vids as $vid) {
-	    // dsm($vid->label());
 	    if ($vid->label() == '良友节目') {
 
 	      $container = \Drupal::getContainer();
@@ -62,7 +61,6 @@ class LyapiController extends ControllerBase {
 	      if (!empty($terms)) {
 	        foreach($terms as $term) {
 	          $code = $term->get('field_term_lylist_code')->value;
-	          // dpm($code);
 	          $data[$code]['day'] = $term->get('field_term_lylist_day')->value;
 	          $data[$code]['index'] = $term->get('field_term_lylist_index')->value;
 	          $data[$code]['ly_index'] = $term->get('field_term_lylist_lywx')->value;
@@ -72,24 +70,25 @@ class LyapiController extends ControllerBase {
 	      break;
 	    }
 	  }
-	}/**
-	 * 自动更新播放日期编号！todo
-	 */
+	}
+
 	public function getLtsJson(){
 	  $vids = Vocabulary::loadMultiple();
 	  foreach ($vids as $vid) {
-	    // dsm($vid->label());
 	    if ($vid->label() == '良院课程') {
-
 	      $container = \Drupal::getContainer();
 	      $terms = $container->get('entity.manager')->getStorage('taxonomy_term')->loadTree($vid->id(), 0, NULL, TRUE);
 	      if (!empty($terms)) {
 	        foreach($terms as $term) {
-	          $code = $term->get('field_term_lylist_code')->value;
-	          // dpm($code);
-	          $data[$code]['day'] = $term->get('field_term_lylist_day')->value;
-	          $data[$code]['index'] = $term->get('field_term_lylist_index')->value;
-	          $data[$code]['ly_index'] = $term->get('field_term_lylist_lywx')->value;
+	          $code = $term->get('field_term_lylts_prefex')->value;
+	          if(!$code) continue;
+	          $data[$code]['code'] = $code;
+	          $data[$code]['category'] = $term->get('field_term_lylts_level')->value;
+	          $data[$code]['author'] = $term->get('field_term_lylts_author')->value;
+	          $data[$code]['index'] = $term->get('field_term_lylts_code')->value;
+	          $data[$code]['name'] = $term->get('field_term_lylts_title')->value;
+	          $data[$code]['count'] = $term->get('field_term_lylts_count')->value;
+	          $data[$code]['weight'] = $term->getWeight();
 	        }
 	       return new JsonResponse(array_filter($data));
 	      }
