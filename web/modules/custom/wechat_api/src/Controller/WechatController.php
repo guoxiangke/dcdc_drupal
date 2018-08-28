@@ -133,7 +133,7 @@ class WechatController extends ControllerBase
 //				$did_you_know = explode("\n",$did_you_know);
 				$CustomMessage = $resources['custommessage'];
 				if($uid==4 || $uid==10){
-					$CustomMessage .= "\n------------\n如果我们的努力对您有所帮助，请\n<a href='https://www.yongbuzhixi.com/wxdonate'>赞助永不止息</a>\n永不止息，感恩有你<a href='https://www.yongbuzhixi.com/wxdonate'>赶快来支持小永</a>一下吧[抱拳]\n永不止息，需要有你";
+					$CustomMessage .= "\n------------\n如果我们的努力对您有所帮助，请\n<a href=\"https://www.yongbuzhixi.com/wxdonate\">赞助永不止息</a>\n永不止息，感恩有你<a href=\"https://www.yongbuzhixi.com/wxdonate\">赶快来支持小永</a>一下吧[抱拳]\n永不止息，需要有你";
 				}
 				$weObj->sendCustomMessage([
 					"touser"=>$weObj->getRev()->getRevFrom(),
