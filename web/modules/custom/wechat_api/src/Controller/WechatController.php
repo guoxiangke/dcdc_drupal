@@ -131,13 +131,10 @@ class WechatController extends ControllerBase
 //                \Drupal::logger('$wxresources')->notice('<pre>'.var_export($resources,1));
 //				$did_you_know = variable_get('wechat_add_message_'.$account->uid, "");
 //				$did_you_know = explode("\n",$did_you_know);
-				$added = '';
-//				if($account->uid==12){
-//					//节目为啥变灰色了呢，是小永的病毒[TearingUp],小永可不会这高科技[Cry]，是微信最新版本功能的哦！[Twirl]
-//					$add_more = $did_you_know[array_rand($did_you_know)];
-//					$added .= "\n------------------------------\n您知道吗[疑问]".$add_more."[嘘]";
-//				}
 				$CustomMessage = $resources['custommessage'];
+				if($uid==4||$uid==12){
+					$CustomMessage .= "\n如果我们的努力对您有所帮助，请\n<a href='https://www.yongbuzhixi.com/wxdonate'>赞助永不止息</a>或\n<a href='https://www.yongbuzhixi.com/wxdonate'>支持小永</a>一下吧[抱拳]\n永不止息，需要有你";
+				}
 				$weObj->sendCustomMessage([
 					"touser"=>$weObj->getRev()->getRevFrom(),
 					"msgtype"=>'text',
