@@ -130,10 +130,36 @@ class WechatController extends ControllerBase
 			if(isset($resources['custommessage'])){
 //                \Drupal::logger('$wxresources')->notice('<pre>'.var_export($resources,1));
 //				$did_you_know = variable_get('wechat_add_message_'.$account->uid, "");
-//				$did_you_know = explode("\n",$did_you_know);
+//
 				$CustomMessage = $resources['custommessage'];
 				if($uid==4 || $uid==10){
-					$CustomMessage .= "\n------------\n如果我们的努力对您有所帮助，\n请<a href=\"https://www.yongbuzhixi.com/wxdonate\">赞助永不止息</a>\n永不止息，感恩有你\n<a href=\"https://www.yongbuzhixi.com/wxdonate\">赶快来支持小永</a>一下吧[啤酒]\n永不止息，需要有你";
+					$did_you_know = <<<EFO
+[疑问]您知道吗[嘘]回复【600】可以选取更多您喜欢的节目
+[疑问]您知道吗[嘘]点击▶️收听的意思是:点击🎵文件上面的▷
+[疑问]您知道吗[嘘]不能后台收听说明您点击的三角不对哦
+[疑问]您知道吗[嘘]【400】节目小永努力重构中
+[疑问]您知道吗[嘘]改名【云彩助手】,您还认识我吗?
+[疑问]您知道吗[嘘]原永不止息主内婚恋网改为永不止息了
+[疑问]您知道吗[嘘]原永不止息改为【<a href="http://dwz.cn/NHKXuLmA">云彩助手</a>】了
+创世记 9:13-14 我把虹放在云彩中，这就可作我与地立约的记号了。我使云彩盖地的时候，必有虹现在云彩中
+马可福音 9:7 有一朵云彩来遮盖他们，也有声音从云彩里出来说：“这是我的爱子，你们要听他。”
+希伯来书 12:1 我们既有这许多的见证人，如同云彩围着我们，就当放下各样的重担，脱去容易缠累我们的罪，存心忍耐，奔那摆在我们前头的路程，
+启示录 10:1 我又看见另有一位大力的天使从天降下，披着云彩，头上有虹，脸面像日头，两脚像火柱。
+出埃及记 40:34 当时，云彩遮盖会幕，耶和华的荣光就充满了帐幕。
+出埃及记 40:36 每逢云彩从帐幕收上去，以色列人就起程前往；
+出埃及记 40:37 云彩若不收上去，他们就不起程，直等到云彩收上去。
+出埃及记 40:38 日间，耶和华的云彩是在帐幕以上；夜间，云中有火，在以色列全家的眼前，在他们所行的路上都是这样。
+民数记 9:17 云彩几时从帐幕收上去，以色列人就几时起行；云彩在哪里停住，以色列人就在那里安营。
+民数记 9:22 云彩停留在帐幕上，无论是两天，是一月，是一年，以色列人就住营不起行，但云彩收上去，他们就起行。
+约伯记 7:9 云彩消散而过；照样，人下阴间也不再上来。
+约伯记 36:28 云彩将雨落下，沛然降与世人。
+约伯记 36:29 谁能明白云彩如何铺张，和神行宫的雷声呢？
+约伯记 37:16 云彩如何浮于空中？那知识全备者奇妙的作为，你知道吗？
+诗篇 78:14 他白日用云彩，终夜用火光引导他们。
+[疑问]您知道吗[嘘]全新的赞赏功能悄然上线,小伙伴再也不用抱怨不能支付了,<a href="https://wechat.yongbuzhixi.com/donate">点击体验</a>
+EFO;
+					$did_you_know = explode("\n",$did_you_know);
+					$CustomMessage .= "\n------------\n".$did_you_know[array_rand($did_you_know)]."\n永不止息，感恩有你";
 				}
 				$weObj->sendCustomMessage([
 					"touser"=>$weObj->getRev()->getRevFrom(),

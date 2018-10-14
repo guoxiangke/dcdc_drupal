@@ -35,7 +35,12 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
     $app_copy_name = '公众号:永不止息';
     $zy_test_appname = '良友知音';
     $https = 'http://';
-    $cdnlink = $https . 'lywxaudio.yongbuzhixi.com';
+    // cname lytx2.net
+    $cdnlink = $https . 'lywx2018.yongbuzhixi.com';
+    //upyun cdn
+    $cdnlink = $https . 'lytx2.yongbuzhixi.com';
+    //http://txly2.net/ly/audio/2018/ee/ee181014.mp3
+    $cdnpre = '/ly/audio';
     $default_desc = "点击▶️收听 " . $app_copy_name;
     $app_name = NULL;
     $is_certified = 0;
@@ -190,7 +195,7 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
         do {
             $tmp_time = $time - $offset * 86400;
             $date = date('ymd', $tmp_time);//161129
-            $tmp_path = '/' . date('Y', $tmp_time) . '/' . $code . '/' . $code;
+            $tmp_path = $cdnpre . '/' . date('Y', $tmp_time) . '/' . $code . '/' . $code;
             $path = $tmp_path . $date . '.mp3';// /2016/rt/rt161127.mp3
             $upt = upyun_get_token($path);
             $uri = $cdnlink . $path;
