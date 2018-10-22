@@ -138,10 +138,12 @@ function resource_lts_wxresources_alter($keyword,Wechat $weObj=NULL){
 		return $resources;
 	}
 	//$cdn = 'http://upcdnlts.yongbuzhixi.com';
-	$cdn = 'http://upcdn.yongbuzhixi.com/';
+	// $cdn = 'http://upcdn.yongbuzhixi.com/';
+	$cdn = 'https://ltswx2018.yongbuzhixi.com/';
+	// https://ltswx2018.yongbuzhixi.com/ly/addfiles/lts/
 	//s3-ap-northeast-1.amazonaws.com/lyfiles/lts/
 
-	$cdn_pre = 'lts/';
+	$cdn_pre = 'ly/addfiles/lts/';
 	if($count==='0'){//获取目录概括+//获取pdf
 		$link = $level.'/'.$mav['title'].'/'.$mav['title'].'.pdf';
 		$path = $cdn_pre . $link;

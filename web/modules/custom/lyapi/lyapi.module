@@ -34,11 +34,11 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
 {
     $app_copy_name = '公众号:永不止息';
     $zy_test_appname = '良友知音';
-    $https = 'http://';
+    $https = 'https://';
     // cname lytx2.net
     $cdnlink = $https . 'lywx2018.yongbuzhixi.com';
     //upyun cdn
-    $cdnlink = $https . 'lytx2.yongbuzhixi.com';
+    // $cdnlink = $https . 'lytx2.yongbuzhixi.com';
     //http://txly2.net/ly/audio/2018/ee/ee181014.mp3
     $cdnpre = '/ly/audio';
     $default_desc = "点击▶️收听 " . $app_copy_name;
