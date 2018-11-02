@@ -70,7 +70,7 @@ function tools_wechat_api_get_news($nids){
     $news=[];
     foreach ($nids as $key => $nid) {
         $node = Node::load($nid);
-        $desc = $node->body->summary?:Unicode::truncate($node->body->value, '54', TRUE, TRUE);
+        $desc = $node->body->summary?:Unicode::truncate(strip_tags($node->body->value), '54', TRUE, TRUE);
         if(!$desc) $desc="只有音频/视频";
         $url = Url::fromRoute('entity.node.canonical', ['node' => $nid],['absolute' => TRUE])->toString();
         $picurl=null;
