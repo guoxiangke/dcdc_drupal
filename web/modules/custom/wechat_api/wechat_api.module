@@ -11,7 +11,7 @@ use Drupal\profile\Entity\ProfileType;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\user\Entity\User;
 use Drupal\wechat_api\Plugin\Wechat\Wechat;
-use Drupal\Core\Url;    
+use Drupal\Core\Url;
 
 
 
@@ -485,7 +485,7 @@ function _default_news($config,$uid=0){
     }else{
         $nids = tools_wxapi_get_nids($query_fields,'article',$counts[0]);
     }
-    $news = array_merge(array_values($news), array_values(tools_wechat_api_get_news($nids))); 
+    $news = array_merge(array_values($news), array_values(tools_wechat_api_get_news($nids)));
     //2.置顶文章count[1]个
     $query_fields=[
      'status'=>1,
@@ -496,14 +496,16 @@ function _default_news($config,$uid=0){
     }else{
         $nids = tools_wxapi_get_nids($query_fields,'article',$counts[1]);
     }
-    $news = array_merge(array_values($news), array_values(tools_wechat_api_get_news($nids))); 
+    $news = array_merge(array_values($news), array_values(tools_wechat_api_get_news($nids)));
 
     //显示底部！
+    $news = [];
     if($counts[2]!=0){
+        $picurl = 'http://mmbiz.qpic.cn/mmbiz_jpg/I2rbxqsBRK3W4pJUhm0Cj304u9fUsxPtkPZaiaZ23J5WDzcNfbQE0Szy3UMJzOz5coloCdh2JWN58BOic3E94cMw/0?wx_fmt=jpeg';
       $img = array(
         'Title'=>isset($config['copyright_header'])&&strlen($config['copyright_header'])!=0?$config['copyright_header']:'技术支持：主内公众云 https://api.yongbuzhixi.com',
-        'Description'=>'',
-        'PicUrl'=>'',
+        'Description'=>isset($config['copyright_footer'])&&strlen($config['copyright_footer'])!=0?$config['copyright_footer']:'技术支持：主内公众云 https://api.yongbuzhixi.com',
+        'PicUrl'=> $picurl,
         'Url'=> isset($config['config_focus_url'])&&strlen($config['config_focus_url'])!=0?$config['config_focus_url']:'https://api.yongbuzhixi.com'
       );
       $news[] = $img;
@@ -803,7 +805,7 @@ function mp_getwxcontent($link, $weObj=NULL)
         $ori_head_img_url = str_replace('http://', 'https://', $ori_head_img_url);
         $user->set('field_user_picture_url', $ori_head_img_url);
         $user->save();
-        
+
         preg_match('/msg_link = "(.+)"/', $ori_html, $matchs);
         $msg_link = str_replace('\x26amp;','&',$matchs[1]);
         $qr_link =  str_replace('s?','mp/qrcode?scene=10000005&size=102&',$msg_link);
@@ -844,7 +846,7 @@ function mp_getwxcontent($link, $weObj=NULL)
         if(strpos($ori_title, '恩典365')!==FALSE){
             $node = Node::load($entity_id);
             $node->field_tags = [369];//恩典365
-            $node->field_article_wechat_term = [240];//恩典365基督之家 
+            $node->field_article_wechat_term = [240];//恩典365基督之家
             $node->save();
             $resources = [
                 'keyword' => '_update_node',
