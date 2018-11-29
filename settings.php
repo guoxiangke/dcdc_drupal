@@ -806,6 +806,7 @@ $settings['reverse_proxy_proto_header'] = 'X_FORWARDED_PROTO';
 $settings['trusted_host_patterns'] = array(
   '^api\.yongbuzhixi\.com$',
   '^api\.aws\.yongbuzhixi\.com$',
+  '^wechat\.edu\.pl',
   '^api\.staging\.yongbuzhixi\.com$'
 );
 $settings['update_free_access'] = FALSE;
