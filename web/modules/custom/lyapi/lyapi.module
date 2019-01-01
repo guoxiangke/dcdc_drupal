@@ -370,6 +370,16 @@ function lyapi_wxresources_alter($keyword, Wechat $weObj = NULL)
     }
     //金句
     if($keyword=='金句'){
+        return array(
+                'type'    => 'text',
+                'ga_data' => array(
+                    'category' => 'lyapi_error',
+                    'action'   => 'lyapi_ju',
+                ),
+                'obj'     => array(
+                    'text' => "2018年的金句电子卡片已全部推送完毕。感谢各位支持。\n2019年会有新的安排，详情请留意我们最新的动态！",
+                )
+            );
         $file_path = DRUPAL_ROOT.'/sites/default/files/jinju/';
         $jpg = '@'.$file_path.date('W').'.jpg';
         $resources = [
