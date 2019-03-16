@@ -807,6 +807,7 @@ $settings['trusted_host_patterns'] = array(
   '^api\.yongbuzhixi\.com$',
   '^api\.aws\.yongbuzhixi\.com$',
   '^wechat\.edu\.pl',
+  '^127\.0\.0\.1',
   '^api\.staging\.yongbuzhixi\.com$'
 );
 $settings['update_free_access'] = FALSE;

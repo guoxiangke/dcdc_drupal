@@ -14,10 +14,6 @@
             "type": "composer",
             "url": "https://packages.drupal.org/8"
         },
-        "packagist": {
-            "type": "composer",
-            "url": "https://packagist.phpcomposer.com"
-        },
         "jquery-bar-rating":{
           "type": "package",
           "package": {
@@ -109,7 +105,6 @@
         "drupal/views_infinite_scroll": "^1.5",
         "drupal/votingapi": "^3.0@alpha",
         "drupal/votingapi_widgets": "^1.0",
-        "drupal/webprofiler": "^2.0@RC",
         "drush/drush": "^9.0.0",
         "htmlpurifier": "^4.10",
         "michelf/php-markdown": "^1.8",
